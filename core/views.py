@@ -15,6 +15,8 @@ from .models import OTP
 
 # ==================== AUTHENTICATION VIEWS ====================
 
+# ==================== AUTHENTICATION VIEWS ====================
+
 def signup(request):
     if request.user.is_authenticated:
         return redirect('home')
@@ -41,7 +43,16 @@ def signup(request):
             messages.error(request, 'Email is already registered')
             return render(request, 'core/signup.html')
         
-        # Create user with username as email
+        # ✅ Check if OTP was verified in session
+        if not request.session.get('otp_verified', False):
+            messages.error(request, 'Please verify your OTP first.')
+            return render(request, 'core/signup.html')
+        
+        if request.session.get('otp_email') != email:
+            messages.error(request, 'OTP was verified for a different email.')
+            return render(request, 'core/signup.html')
+        
+        # Create user
         user = User.objects.create_user(
             username=email,
             email=email,
@@ -50,13 +61,20 @@ def signup(request):
             last_name=''
         )
         
-        # Create profile with role
+        # Create profile
         profile = Profile.objects.create(
             user=user,
             role=role,
             department=department,
             bio=bio
         )
+        
+        # ✅ Clear session
+        request.session['otp_verified'] = False
+        request.session['otp_email'] = None
+        
+        # ✅ Delete used OTP
+        OTP.objects.filter(email=email).delete()
         
         messages.success(request, 'Account created successfully! Please login.')
         return redirect('login')
@@ -673,15 +691,23 @@ def get_user_posts(request):
 
 
 
-# --- Generate OTP ---
+# ==================== OTP VIEWS ====================
+
+import random
+from django.core.mail import send_mail
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from .models import OTP
+
 def generate_otp():
     return str(random.randint(100000, 999999))
 
-# --- Send OTP ---
 @csrf_exempt
 def send_otp(request):
     if request.method == 'POST':
         email = request.POST.get('email', '').strip()
+        
+        print(f"📧 Sending OTP to: {email}")
         
         # Check if email ends with @nec.edu.np
         if not email.endswith('@nec.edu.np'):
@@ -691,37 +717,61 @@ def send_otp(request):
         if User.objects.filter(email=email).exists():
             return JsonResponse({'success': False, 'error': 'Email already registered'})
         
-        # Delete old OTPs for this email
+        # Delete old OTPs
         OTP.objects.filter(email=email).delete()
         
         # Generate new OTP
         otp_code = generate_otp()
         OTP.objects.create(email=email, otp_code=otp_code)
         
-        # Send email (for testing, print to console)
+        # ✅ Send professional email from @nec.edu.np
         try:
             send_mail(
-                subject='Campus Connect - OTP Verification',
-                message=f'Your OTP code is: {otp_code}\n\nThis code will expire in 10 minutes.\n\nThank you,\nCampus Connect Team',
-                from_email='noreply@campusconnect.com',
+                subject='🔐 Campus Connect - OTP Verification',
+                message=f'''
+Dear Student,
+
+Your One-Time Password (OTP) for Campus Connect registration is:
+
+🔑 {otp_code}
+
+This OTP is valid for 10 minutes.
+
+If you did not request this, please ignore this email.
+
+Best regards,
+Campus Connect Team
+Nepal Engineering College
+''',
+                from_email=settings.DEFAULT_FROM_EMAIL,  # noreply@nec.edu.np
                 recipient_list=[email],
                 fail_silently=False,
             )
-            print(f"✅ OTP sent to {email}: {otp_code}")  # For debugging
+            
+            # ✅ Print to terminal (for debugging)
+            print(f"\n{'='*50}")
+            print(f"🔐 OTP FOR {email}: {otp_code}")
+            print(f"{'='*50}\n")
+    
+            print(f"✅ OTP email sent to {email}")
         except Exception as e:
             print(f"❌ Error sending email: {e}")
-            # For development, still return success but log the error
+            return JsonResponse({'success': False, 'error': 'Failed to send OTP email. Please try again.'})
         
-        return JsonResponse({'success': True, 'message': 'OTP sent to your email'})
+        return JsonResponse({
+            'success': True,
+            'message': 'OTP sent to your email'
+        })
     
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
-# --- Verify OTP ---
 @csrf_exempt
 def verify_otp(request):
     if request.method == 'POST':
         email = request.POST.get('email', '').strip()
         otp_code = request.POST.get('otp', '').strip()
+        
+        print(f"🔍 Verifying OTP for {email}: {otp_code}")
         
         try:
             otp = OTP.objects.get(email=email, otp_code=otp_code, is_used=False)
@@ -729,76 +779,18 @@ def verify_otp(request):
             if otp.is_expired():
                 return JsonResponse({'success': False, 'error': 'OTP has expired. Please request a new one.'})
             
-            # Mark OTP as used
             otp.is_used = True
             otp.save()
             
+            # ✅ Store verification in session
+            request.session['otp_verified'] = True
+            request.session['otp_email'] = email
+            
+            print(f"✅ OTP verified for {email}")
             return JsonResponse({'success': True, 'message': 'OTP verified successfully'})
             
         except OTP.DoesNotExist:
+            print(f"❌ Invalid OTP for {email}")
             return JsonResponse({'success': False, 'error': 'Invalid OTP code'})
     
     return JsonResponse({'success': False, 'error': 'Invalid request'})
-
-# --- Updated Signup with OTP ---
-def signup(request):
-    if request.user.is_authenticated:
-        return redirect('home')
-        
-    if request.method == 'POST':
-        full_name = request.POST.get('regName', '').strip()
-        email = request.POST.get('regEmail', '').strip()
-        password = request.POST.get('regPass', '')
-        otp_code = request.POST.get('otp', '').strip()
-        role = request.POST.get('role', 'student')
-        department = request.POST.get('dept', '').strip()
-        bio = request.POST.get('bio', '').strip()
-        
-        # Validation
-        if not full_name or not email or not password:
-            messages.error(request, 'All fields are required')
-            return render(request, 'core/signup.html')
-        
-        # Email domain validation
-        if not email.endswith('@nec.edu.np'):
-            messages.error(request, 'Only @nec.edu.np emails are allowed')
-            return render(request, 'core/signup.html')
-        
-        if User.objects.filter(email=email).exists():
-            messages.error(request, 'Email is already registered')
-            return render(request, 'core/signup.html')
-        
-        # Verify OTP
-        try:
-            otp = OTP.objects.get(email=email, otp_code=otp_code, is_used=False)
-            if otp.is_expired():
-                messages.error(request, 'OTP has expired. Please request a new one.')
-                return render(request, 'core/signup.html')
-            # Mark as used
-            otp.is_used = True
-            otp.save()
-        except OTP.DoesNotExist:
-            messages.error(request, 'Invalid OTP code. Please request a new one.')
-            return render(request, 'core/signup.html')
-        
-        # Create user
-        user = User.objects.create_user(
-            username=email,
-            email=email,
-            password=password,
-            first_name='',
-            last_name=''
-        )
-        
-        # Create profile
-        profile = Profile.objects.create(
-            user=user,
-            role=role,
-            department=department,
-            bio=bio
-        )
-        
-        messages.success(request, 'Account created successfully! Please login.')
-        return redirect('login')
-    
-    return render(request, 'core/signup.html')

@@ -22,9 +22,10 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
-            overflow: hidden;
+            padding: 20px;
+            overflow-y: auto;
         }
 
         @keyframes cardEntrance {
@@ -170,10 +171,16 @@
             box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             background-color: var(--brand-purple-hover);
             box-shadow: 0 6px 16px rgba(124, 58, 237, 0.3);
             transform: translateY(-1px);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
 
         @keyframes revealFields {
@@ -207,9 +214,79 @@
 
         .hidden { display: none !important; }
 
+        /* ===== OTP STYLES ===== */
+        .otp-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 8px 0;
+        }
+        
+        .otp-container input {
+            flex: 1;
+            margin: 0;
+        }
+        
+        .otp-container .send-otp-btn {
+            width: auto;
+            padding: 14px 20px;
+            background: var(--brand-purple);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s;
+            margin: 0;
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.2);
+            font-size: 14px;
+        }
+        
+        .otp-container .send-otp-btn:hover:not(:disabled) {
+            background: var(--brand-purple-hover);
+            transform: translateY(-1px);
+        }
+        
+        .otp-container .send-otp-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .otp-status {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            min-height: 20px;
+        }
+        
+        .otp-status.success {
+            color: #10b981;
+        }
+        
+        .otp-status.error {
+            color: #ef4444;
+        }
+        
+        .otp-verified {
+            color: #10b981;
+            font-weight: 600;
+            font-size: 14px;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+        }
+        
+        .otp-verified.show {
+            display: flex;
+        }
+
         @media (max-width: 850px) {
             .page-wrapper { flex-direction: column; max-width: 440px; margin: 20px; }
             .illustration-side, .curvy-divider { display: none; }
+            .auth-container { padding: 30px 25px; }
         }
     </style>
 </head>
@@ -222,7 +299,7 @@
 
     <div class="illustration-side">
         <h1 class="brand-title">Campus Connect</h1>
-<img src="{% static 'images/campus-illustration.png' %}" onerror="this.src='https://placehold.co/600x400/2e1065/ffffff?text=Campus+Connect'" alt="Illustration">
+        <img src="{% static 'images/campus-illustration.png' %}" onerror="this.src='https://placehold.co/600x400/2e1065/ffffff?text=Campus+Connect'" alt="Illustration"> 
     </div>
 
     <div class="auth-container">
@@ -242,6 +319,17 @@
             
             <input type="text" id="regName" name="regName" placeholder="Full Name" required>
             <input type="email" id="regEmail" name="regEmail" placeholder="Email" required>
+            
+            <!-- ===== OTP SECTION ===== -->
+            <div class="otp-container">
+                <input type="text" id="otpInput" name="otp" placeholder="Enter 6-digit OTP" maxlength="6" required>
+                <button type="button" class="send-otp-btn" id="sendOtpBtn" onclick="sendOTP()">Send OTP</button>
+            </div>
+            <div class="otp-status" id="otpStatus">Enter your email and click Send OTP</div>
+            <div class="otp-verified" id="otpVerified">
+                <i class="fas fa-check-circle"></i> OTP Verified!
+            </div>
+            
             <input type="password" id="regPass" name="regPass" placeholder="Password" required>
 
             <select id="roleSelect" name="role" onchange="handleRoleChange()" required>
@@ -253,17 +341,34 @@
 
             <div id="dynamicInputs" class="extra-fields-area hidden"></div>
 
-            <button type="submit">Create Account</button>
-        <a href="{% url 'login' %}" class="toggle-link" style="display: block; text-decoration: none;">Already have an account? Login</a>
-        </form>
+            <button type="submit" id="signupBtn" disabled>Create Account</button>
+        </form>  <!-- ❌ This closes the form -->
+
+<!-- ✅ Login link is outside the form - this is CORRECT -->
+<div style="text-align: center; margin-top: 18px;">
+    <a href="{% url 'login' %}" style="color: #7c3aed; text-decoration: none; font-weight: 500; font-size: 14px;">
+        Already have an account? <strong>Login</strong>
+    </a>
+</div>
+    
     </div>
 </div>
 
+
 <script>
+    // ===== OTP VARIABLES =====
+    let otpVerified = false;
+    let otpTimer = null;
+    
+    // Get CSRF token from the page
+    const csrftoken = document.querySelector('[name=csrf-token]')?.content || '';
+
+    // ===== DOMAIN VALIDATION =====
     function isNECDomain(email) {
         return email.toLowerCase().endsWith('@nec.edu.np');
     }
 
+    // ===== ROLE HANDLER =====
     function handleRoleChange() {
         const role = document.getElementById('roleSelect').value;
         const container = document.getElementById('dynamicInputs');
@@ -294,15 +399,173 @@
         }
     }
 
+    // ===== SEND OTP =====
+    function sendOTP() {
+        const email = document.getElementById('regEmail').value;
+        const statusEl = document.getElementById('otpStatus');
+        const sendBtn = document.getElementById('sendOtpBtn');
+        
+        if (!email) {
+            statusEl.textContent = '❌ Please enter your email first';
+            statusEl.className = 'otp-status error';
+            return;
+        }
+        
+        if (!isNECDomain(email)) {
+            statusEl.textContent = '❌ Only @nec.edu.np emails are allowed';
+            statusEl.className = 'otp-status error';
+            return;
+        }
+        
+        // Disable button and show loading
+        sendBtn.disabled = true;
+        sendBtn.textContent = '⏳ Sending...';
+        statusEl.textContent = '⏳ Sending OTP...';
+        statusEl.className = 'otp-status';
+        
+        fetch('/send-otp/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrftoken
+            },
+            body: `email=${encodeURIComponent(email)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                statusEl.innerHTML = `✅ OTP sent! Check your terminal/console for the 6-digit code.`;
+                statusEl.className = 'otp-status success';
+                startTimer(60);
+            } else {
+                statusEl.textContent = '❌ ' + (data.error || 'Failed to send OTP');
+                statusEl.className = 'otp-status error';
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send OTP';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            statusEl.textContent = '❌ Error sending OTP. Please try again.';
+            statusEl.className = 'otp-status error';
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send OTP';
+        });
+    }
+
+    // ===== START TIMER =====
+    function startTimer(seconds) {
+        const sendBtn = document.getElementById('sendOtpBtn');
+        let countdown = seconds;
+        
+        if (otpTimer) clearInterval(otpTimer);
+        
+        otpTimer = setInterval(() => {
+            countdown--;
+            if (countdown <= 0) {
+                clearInterval(otpTimer);
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send OTP';
+            } else {
+                sendBtn.textContent = `Resend (${countdown}s)`;
+            }
+        }, 1000);
+    }
+
+    // ===== VERIFY OTP (Auto-verify when user types 6 digits) =====
+    document.getElementById('otpInput').addEventListener('input', function() {
+        const otp = this.value.trim();
+        const email = document.getElementById('regEmail').value;
+        const statusEl = document.getElementById('otpStatus');
+        const verifiedEl = document.getElementById('otpVerified');
+        const signupBtn = document.getElementById('signupBtn');
+        
+        // Only verify if 6 digits are entered
+        if (otp.length === 6 && /^\d{6}$/.test(otp)) {
+            // Auto-verify OTP
+            fetch('/verify-otp/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrftoken
+                },
+                body: `email=${encodeURIComponent(email)}&otp=${encodeURIComponent(otp)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    otpVerified = true;
+                    verifiedEl.classList.add('show');
+                    statusEl.textContent = '✅ OTP verified! You can now create your account.';
+                    statusEl.className = 'otp-status success';
+                    signupBtn.disabled = false;
+                } else {
+                    otpVerified = false;
+                    verifiedEl.classList.remove('show');
+                    statusEl.textContent = '❌ ' + (data.error || 'Invalid OTP');
+                    statusEl.className = 'otp-status error';
+                    signupBtn.disabled = true;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        } else {
+            otpVerified = false;
+            verifiedEl.classList.remove('show');
+            signupBtn.disabled = true;
+            if (otp.length > 0) {
+                statusEl.textContent = '⏳ Enter 6-digit OTP...';
+                statusEl.className = 'otp-status';
+            }
+        }
+    });
+
+    // ===== FORM VALIDATION =====
     function validateSignupForm(event) {
         const email = document.getElementById('regEmail').value;
+        const otp = document.getElementById('otpInput').value.trim();
+        
         if (!isNECDomain(email)) {
             alert("Access Denied: Only @nec.edu.np emails are allowed.");
-            event.preventDefault(); // Stop form submission
+            event.preventDefault();
             return false;
         }
+        
+        if (!otpVerified) {
+            alert("Please verify your OTP first.");
+            event.preventDefault();
+            return false;
+        }
+        
+        if (otp.length !== 6 || !/^\d{6}$/.test(otp)) {
+            alert("Please enter a valid 6-digit OTP.");
+            event.preventDefault();
+            return false;
+        }
+        
         return true;
     }
+
+    // ===== CSRF TOKEN HELPER =====
+    // Get CSRF token from cookie if not available in meta
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Use csrftoken from meta or cookie
+    const csrfToken = document.querySelector('[name=csrf-token]')?.content || getCookie('csrftoken') || '';
 </script>
 </body>
 </html>
