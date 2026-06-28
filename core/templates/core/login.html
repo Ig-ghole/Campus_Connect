@@ -1,0 +1,254 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Campus Connect - Login</title>
+    <style>
+        /* Shared Style Guidelines from root theme */
+        :root {
+            --brand-purple: #7c3aed;
+            --brand-purple-hover: #6d28d9;
+            --bg-page: linear-gradient(135deg, #f1f5f9 0%, #e0e7ff 100%);
+            --card-form-bg: #fdfeff;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #cbd5e1;
+            --illustration-bg: linear-gradient(135deg, #1e1b4b 0%, #2e1065 100%);
+        }
+
+        body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    background: var(--bg-page);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh; /* Changed from height: 100vh to accommodate scrolling */
+    margin: 0;
+    overflow-y: auto;  /* Allows vertical scrolling only when needed */
+}
+
+        @keyframes cardEntrance {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+       .page-wrapper {
+    display: flex;
+    background: var(--card-form-bg);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(0, 0, 0, 0.02);
+    width: 100%;
+    max-width: 950px;
+    min-height: 560px;
+    /* Remove or comment out 'overflow: hidden;' if it still clips interior shadows/inputs */
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    position: relative;
+    animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+        .illustration-side {
+            flex: 1.3;
+            background: var(--illustration-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 50px 40px 40px 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand-title {
+            color: #ffffff;
+            font-size: 48px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin: 0 0 20px 0;
+            text-align: center;
+            text-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+            line-height: 1.1;
+        }
+
+        @keyframes floatArtwork {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .illustration-side img {
+            width: 100%;
+            height: auto;
+            max-height: 350px;
+            object-fit: contain;
+            mix-blend-mode: screen;
+            opacity: 0.9;
+            margin: auto 0;
+            animation: floatArtwork 2.5s ease-in-out infinite;
+        }
+
+        .curvy-divider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .curvy-divider path {
+            fill: var(--card-form-bg);
+        }
+
+        .auth-container {
+            flex: 1;
+            padding: 50px 45px;
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: var(--card-form-bg);
+            z-index: 1;
+        }
+
+        h5 {
+            color: red;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-align: center;
+            margin-top: 0;
+        }
+
+        h2 {
+            text-align: left;
+            color: var(--text-dark);
+            margin-bottom: 6px;
+            margin-top: 0;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 28px;
+            line-height: 1.4;
+            text-align: left;
+            margin-top: 0;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-sizing: border-box;
+            font-size: 14px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--brand-purple);
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+            transform: translateX(2px);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--brand-purple);
+            border: none;
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 18px;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+        }
+
+        button:hover {
+            background-color: var(--brand-purple-hover);
+            box-shadow: 0 6px 16px rgba(124, 58, 237, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .toggle-link {
+            text-align: center;
+            margin-top: 22px;
+            color: var(--brand-purple);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .toggle-link:hover {
+            color: var(--brand-purple-hover);
+            text-decoration: underline;
+        }
+
+        @media (max-width: 850px) {
+            .page-wrapper { flex-direction: column; max-width: 440px; margin: 20px; }
+            .illustration-side, .curvy-divider { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page-wrapper">
+    <svg class="curvy-divider" viewBox="0 0 500 500" preserveAspectRatio="none">
+        <path d="M0,0 C150,200 350,0 500,100 L500,500 L0,500 Z"></path>
+    </svg>
+
+    <div class="illustration-side">
+        <h1 class="brand-title">Campus Connect</h1>
+        <img src="{% static 'images/campus-illustration.png' %}" onerror="this.src='https://placehold.co/600x400/2e1065/ffffff?text=Campus+Connect'" alt="Illustration">
+    </div>
+
+    <div class="auth-container">
+        {% if messages %}
+            <div>   
+                {% for message in messages %}
+                    <h5>{{ message }}</h5>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form  action="{% url 'login' %}" method="POST" onsubmit="return validateLoginForm(event)">
+            {% csrf_token %}
+            <h2>Login</h2>
+            <p class="subtitle">Log in to view college updates, assignments, and events.</p>
+            
+           <input type="email" id="loginEmail" name="loginEmail" placeholder="Email" required>
+            <input type="password" id="loginPass" name="loginPass" placeholder="Password" required>
+            
+            <button type="submit">Login</button>
+                <a href="{% url 'signup' %}" class="toggle-link" style="display: block; text-decoration: none;">Don't have an account? Sign Up</a>
+        </form>
+    </div>
+</div>
+
+<script>
+    function isNECDomain(email) {
+        return email.toLowerCase().endsWith('@nec.edu.np');
+    }
+
+    function validateLoginForm(event) {
+        const username = document.getElementById('loginUsername').value;
+        const password = document.getElementById('loginPass').value;
+
+        // Simple validation - check if both fields are filled
+        if (!username || !password) {
+            alert("Please fill in all fields.");
+            event.preventDefault();
+            return false;
+        }
+        return true;
+    }
+</script>
+</body>
+</html>

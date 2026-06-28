@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": "C:/Users/Acer/.vscode/gitOne"
+		},
+		{
+			"path": "C:/Users/Acer/.vscode/helpAI"
+		},
+		{
+			"path": "C:/Users/Acer/.vscode/python"
+		},
+		{
+			"path": "C:/Users/Acer/.vscode/cc_miniproject"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "cc_miniproject"
+	}
+}

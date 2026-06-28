@@ -1,0 +1,308 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Campus Connect - Register</title>
+    <style>
+        :root {
+            --brand-purple: #7c3aed;
+            --brand-purple-hover: #6d28d9;
+            --bg-page: linear-gradient(135deg, #f1f5f9 0%, #e0e7ff 100%);
+            --card-form-bg: #fdfeff;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #cbd5e1;
+            --illustration-bg: linear-gradient(135deg, #1e1b4b 0%, #2e1065 100%);
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background: var(--bg-page);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        @keyframes cardEntrance {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .page-wrapper {
+            display: flex;
+            background: var(--card-form-bg);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(0, 0, 0, 0.02);
+            width: 100%;
+            max-width: 950px;
+            min-height: 560px;
+            overflow: hidden;
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            position: relative;
+            animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .illustration-side {
+            flex: 1.3;
+            background: var(--illustration-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 50px 40px 40px 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand-title {
+            color: #ffffff;
+            font-size: 48px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin: 0 0 20px 0;
+            text-align: center;
+            text-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+            line-height: 1.1;
+        }
+
+        @keyframes floatArtwork {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .illustration-side img {
+            width: 100%;
+            height: auto;
+            max-height: 350px;
+            object-fit: contain;
+            mix-blend-mode: screen;
+            opacity: 0.9;
+            margin: auto 0;
+            animation: floatArtwork 2.5s ease-in-out infinite;
+        }
+
+        .curvy-divider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .curvy-divider path {
+            fill: var(--card-form-bg);
+        }
+
+        .auth-container {
+            flex: 1;
+            padding: 50px 45px;
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: var(--card-form-bg);
+            z-index: 1;
+        }
+
+        h5 {
+            color: red;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-align: center;
+            margin-top: 0;
+        }
+
+        h2 {
+            text-align: left;
+            color: var(--text-dark);
+            margin-bottom: 6px;
+            margin-top: 0;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.4;
+            text-align: left;
+            margin-top: 0;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 14px;
+            margin: 8px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-sizing: border-box;
+            font-size: 14px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--brand-purple);
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+            transform: translateX(2px);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--brand-purple);
+            border: none;
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 14px;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+        }
+
+        button:hover {
+            background-color: var(--brand-purple-hover);
+            box-shadow: 0 6px 16px rgba(124, 58, 237, 0.3);
+            transform: translateY(-1px);
+        }
+
+        @keyframes revealFields {
+            from { opacity: 0; transform: translateY(-8px); max-height: 0; }
+            to { opacity: 1; transform: translateY(0); max-height: 350px; }
+        }
+
+        .extra-fields-area {
+            background: #f5f3ff;
+            padding: 14px;
+            border-radius: 10px;
+            margin: 8px 0;
+            border: 1px dashed #c084fc;
+            overflow: hidden;
+            animation: revealFields 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        .toggle-link {
+            text-align: center;
+            margin-top: 22px;
+            color: var(--brand-purple);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .toggle-link:hover {
+            color: var(--brand-purple-hover);
+            text-decoration: underline;
+        }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 850px) {
+            .page-wrapper { flex-direction: column; max-width: 440px; margin: 20px; }
+            .illustration-side, .curvy-divider { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page-wrapper">
+    <svg class="curvy-divider" viewBox="0 0 500 500" preserveAspectRatio="none">
+        <path d="M0,0 C150,200 350,0 500,100 L500,500 L0,500 Z"></path>
+    </svg>
+
+    <div class="illustration-side">
+        <h1 class="brand-title">Campus Connect</h1>
+<img src="{% static 'images/campus-illustration.png' %}" onerror="this.src='https://placehold.co/600x400/2e1065/ffffff?text=Campus+Connect'" alt="Illustration">
+    </div>
+
+    <div class="auth-container">
+        {% if messages %}
+            <div>   
+                {% for message in messages %}
+                    <h5>{{ message }}</h5>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form action="{% url 'signup' %}" method="POST" onsubmit="return validateSignupForm(event)">
+            {% csrf_token %}
+        
+            <h2>Register</h2>
+            <p class="subtitle">Create your portal access account using your credentials.</p>
+            
+            <input type="text" id="regName" name="regName" placeholder="Full Name" required>
+            <input type="email" id="regEmail" name="regEmail" placeholder="Email" required>
+            <input type="password" id="regPass" name="regPass" placeholder="Password" required>
+
+            <select id="roleSelect" name="role" onchange="handleRoleChange()" required>
+                <option value="">Select Role</option>
+                <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
+                <option value="admin">Administrative Staff</option>
+            </select>
+
+            <div id="dynamicInputs" class="extra-fields-area hidden"></div>
+
+            <button type="submit">Create Account</button>
+        <a href="{% url 'login' %}" class="toggle-link" style="display: block; text-decoration: none;">Already have an account? Login</a>
+        </form>
+    </div>
+</div>
+
+<script>
+    function isNECDomain(email) {
+        return email.toLowerCase().endsWith('@nec.edu.np');
+    }
+
+    function handleRoleChange() {
+        const role = document.getElementById('roleSelect').value;
+        const container = document.getElementById('dynamicInputs');
+        
+        if (!role) {
+            container.classList.add('hidden');
+            container.innerHTML = '';
+            return;
+        }
+
+        container.classList.remove('hidden');
+        if (role === 'student') {
+            container.innerHTML = `
+                <input type="text" id="rollNo" name="rollNo" placeholder="Roll Number (e.g., 023326)" required>
+                <input type="text" id="dept" name="dept" placeholder="Department (e.g., SE/BE)" required>
+                <input type="text" id="batch" name="batch" placeholder="Batch (e.g., 2023)" required>
+                <input type="text" id="section" name="section" placeholder="Section (e.g., A/B/C)" required>
+            `;
+        } else if (role === 'teacher') {
+            container.innerHTML = `
+                <input type="text" id="tId" name="tId" placeholder="Teacher ID" required>
+                <input type="text" id="dept" name="dept" placeholder="Department" required>
+            `;
+        } else if (role === 'admin') {
+            container.innerHTML = `
+                <input type="password" id="adminKey" name="adminKey" placeholder="Admin Security Key" required>
+            `;
+        }
+    }
+
+    function validateSignupForm(event) {
+        const email = document.getElementById('regEmail').value;
+        if (!isNECDomain(email)) {
+            alert("Access Denied: Only @nec.edu.np emails are allowed.");
+            event.preventDefault(); // Stop form submission
+            return false;
+        }
+        return true;
+    }
+</script>
+</body>
+</html>

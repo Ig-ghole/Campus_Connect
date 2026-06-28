@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Connect - Home</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
+    
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="{{ csrf_token }}">
+</head>
+<body>
+    <!-- ==================== CURRENT USER DATA ==================== -->
+    <script>
+        const CURRENT_USER = {
+            id: {{ user.id }},
+            username: "{{ user.username }}",
+            full_name: "{{ user.username }}",
+            role: "{{ user_role|default:'student' }}",
+            email: "{{ user.email }}",
+            department: "{{ user.profile.department|default:'' }}",
+            bio: "{{ user.profile.bio|default:'' }}"
+        };
+        const csrftoken = document.querySelector('[name=csrf-token]').content;
+    </script>
+
+    <div class="container">
+        <!-- ==================== SIDEBAR ==================== -->
+        <aside class="sidebar" id="mainSidebar">
+            <a href="#" class="logo">
+                <div class="logo-circle">CC</div>
+                <span>Campus Connect</span>
+            </a>
+            
+            <nav class="menu">
+                <a href="#" class="active" onclick="switchView('homeView', this)">
+                    <i class="fas fa-home"></i> Home
+                </a>
+                <a href="#" onclick="switchView('announcements', this)">
+                    <i class="fas fa-bullhorn"></i> Announcements
+                </a>
+                <a href="#" onclick="switchView('profile', this)">
+                    <i class="fas fa-user"></i> Profile
+                </a>
+                <a href="#" onclick="switchView('tasks', this)">
+                    <i class="fas fa-tasks"></i> Assignments
+                </a>
+                <a href="#" onclick="switchView('notifications', this)">
+                    <i class="fas fa-bell"></i> Notifications
+                    <span class="notification-badge" id="menuNotificationBadge" style="display:none; font-size: 10px; background: #ef4444; color: white; padding: 2px 8px; border-radius: 50%; margin-left: auto;">0</span>
+                </a>
+            </nav>
+            
+            <div class="bottom-section">
+                <div class="user-card">
+                    <div class="user-avatar-small" style="background: #7c3aed; color: white;">
+                        {{ user.username|slice:":1"|upper }}
+                    </div>
+                    <div>
+                        <h4>{{ user.username }}</h4>
+                        <p id="displayRole">{{ user_role|title|default:"Student" }}</p>
+                    </div>
+                </div>
+                
+
+                    
+                
+                
+                <a href="{% url 'logout' %}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </aside>
+        
+        <!-- ==================== CONTENT WRAPPER ==================== -->
+        <div class="content-wrapper">
+            
+            <!-- ========== HOME VIEW ========== -->
+            <div id="homeView" class="dashboard-view active-view">
+                <main class="main">
+                    <div class="header-row">
+                        <div>
+                            <h1>Welcome back, {{ user.username }}! 👋</h1>
+                            <p>Stay connected with your campus community</p>
+                        </div>
+                        <button class="add-task-btn" onclick="openPostModal()">
+                            <i class="fas fa-pen"></i> New Post
+                        </button>
+                    </div>
+                    
+                    <div class="post-input-area">
+                        <div class="post-input-row">
+                            <div class="user-avatar-small" style="background: #7c3aed; color: white; flex-shrink: 0;">
+                                {{ user.username|slice:":1"|upper }}
+                            </div>
+                            <textarea id="postInput" placeholder="What's happening at NEC?" rows="1" 
+                                onkeydown="if(event.key === 'Enter' && !event.shiftKey){event.preventDefault(); addNewPost();}"></textarea>
+                        </div>
+                        <div class="post-input-actions">
+                            <button onclick="addNewPost()" class="post-submit-btn" id="postSubmitBtn">
+                                <i class="fas fa-paper-plane"></i> Post
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="feedList">
+                        {% if posts %}
+                            {% for post in posts %}
+                            <div class="feed-card" data-post-id="{{ post.id }}">
+                                <div class="feed-header">
+                                    <div class="user-avatar-small" style="background: #e0f2fe; color: #0369a1; flex-shrink: 0;">
+                                        {{ post.author.username|slice:":1"|upper }}
+                                    </div>
+                                    <div class="feed-user-info">
+                                        <h4>
+                                            {{ post.author.username }}
+                                            <span>• {{ post.created_at|timesince }} ago</span>
+                                        </h4>
+                                    </div>
+                                    {% if post.author == user %}
+                                    <button onclick="deletePost({{ post.id }})" class="delete-btn" title="Delete Post">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                                <div class="feed-content">{{ post.content }}</div>
+                                
+                                <div class="feed-actions">
+                                    <span onclick="toggleLikePost({{ post.id }})" data-post-id="{{ post.id }}" class="{% if user in post.likes.all %}liked{% endif %}">
+                                        <i class="{% if user in post.likes.all %}fas{% else %}far{% endif %} fa-heart"></i>
+                                        <span class="like-count">{{ post.total_likes }}</span> Like
+                                    </span>
+                                    <span onclick="toggleCommentBox({{ post.id }})" data-post-id="{{ post.id }}">
+                                        <i class="far fa-comment"></i> 
+                                        <span class="comment-count">{{ post.comments_count }}</span> Comment
+                                    </span>
+                                </div>
+                                
+                                <div class="comment-section" id="comment-section-{{ post.id }}" style="display:none;">
+                                    <div class="comment-input-row">
+                                        <input type="text" class="comment-input" placeholder="Write a comment..." 
+                                            onkeydown="handleCommentSubmit(event, {{ post.id }})">
+                                    </div>
+                                    <div class="comments-list" id="comments-{{ post.id }}">
+                                        {% for comment in post.comments.all %}
+                                        <div class="comment-item" data-comment-id="{{ comment.id }}">
+                                            <strong>{{ comment.author.username }}:</strong>
+                                            <span>{{ comment.content }}</span>
+                                            <span class="comment-time">{{ comment.created_at|timesince }} ago</span>
+                                            {% if comment.author == user %}
+                                            <button onclick="deleteComment({{ comment.id }}, {{ post.id }})" class="delete-btn comment-delete-btn" title="Delete Comment">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                        {% empty %}
+                                        <p class="no-comments">No comments yet. Be the first!</p>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="empty-feed">No posts yet. Be the first to share something!</p>
+                        {% endif %}
+                    </div>
+                </main>
+                
+                <aside class="right-panel">
+                    <h3 class="panel-title"><i class="fas fa-calendar-alt"></i> Upcoming Events</h3>
+                    {% if announcements %}
+                        {% for announcement in announcements|slice:":3" %}
+                        <div class="event-card">
+                            <h4>{{ announcement.title|truncatechars:30 }}</h4>
+                            <p>{{ announcement.content|truncatechars:60 }}</p>
+                            <span class="event-date">{{ announcement.created_at|date:"M d, Y" }}</span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="empty-events">No upcoming events</p>
+                    {% endif %}
+                    
+                    <h3 class="panel-title" style="margin-top:30px;"><i class="fas fa-users"></i> Quick Links</h3>
+                    <ul class="quick-links">
+                        <li><a href="#"><i class="fas fa-book"></i> Library</a></li>
+                        <li><a href="#"><i class="fas fa-calendar-check"></i> Academic Calendar</a></li>
+                        <li><a href="#"><i class="fas fa-envelope"></i> Student Support</a></li>
+                        <li><a href="#"><i class="fas fa-laptop"></i> E-Learning Portal</a></li>
+                    </ul>
+                </aside>
+            </div>
+            
+<!-- ========== ANNOUNCEMENTS VIEW ========== -->
+<div id="announcements" class="dashboard-view" style="display:none;">
+    <div class="announcements-header">
+        <div class="announcements-header-left">
+            <h1 class="page-title">Announcements</h1>
+            <p class="page-subtitle">Stay updated with campus news and events</p>
+        </div>
+        <div class="announcements-header-right">
+            <!-- ✅ ONLY ADMIN CAN SEE THIS BUTTON -->
+            {% if user_role == 'admin' %}
+            <button class="add-announcement-btn" onclick="openAnnouncementModal()">
+                <i class="fas fa-plus"></i> New Announcement
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="filter-tags-bar">
+        <button class="filter-tag active" onclick="filterAnnouncements('general', this)">General</button>
+        <button class="filter-tag" onclick="filterAnnouncements('events', this)">Events</button>
+        <button class="filter-tag" onclick="filterAnnouncements('admin', this)">Admin</button>
+    </div>
+    
+    <div id="announcementsContainer">
+        {% if announcements %}
+            {% for announcement in announcements %}
+            <div class="announcement-card" data-category="{{ announcement.category }}" data-announcement-id="{{ announcement.id }}">
+                <div class="announcement-main-content">
+                    <div class="announcement-meta">
+                        <span class="category-badge badge-{{ announcement.category }}">
+                            {{ announcement.get_category_display_name }}
+                        </span>
+                        <span class="announcement-date">{{ announcement.created_at|date:"M d, Y" }}</span>
+                        {% if announcement.is_pinned %}
+                        <span class="category-badge" style="background: #fef3c7; color: #d97706;">
+                            <i class="fas fa-thumbtack"></i> Pinned
+                        </span>
+                        {% endif %}
+                    </div>
+                    <h3>{{ announcement.title }}</h3>
+                    <p class="announcement-sender">From: {{ announcement.author.username }}</p>
+                    <p class="announcement-desc">{{ announcement.content }}</p>
+                </div>
+                <!-- ✅ ONLY ADMIN CAN DELETE -->
+                {% if announcement.author == user and user_role == 'admin' %}
+                <button onclick="deleteAnnouncement({{ announcement.id }})" class="delete-btn" title="Delete Announcement">
+                    <i class="fas fa-trash"></i>
+                </button>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="empty-announcements">No announcements yet.</p>
+        {% endif %}
+    </div>
+</div>
+            
+<!-- ========== PROFILE VIEW ========== -->
+<div id="profile" class="dashboard-view" style="display:none;">
+    <div class="profile-v2-container">
+        <div class="profile-v2-card">
+            <div class="profile-v2-banner"></div>
+            <div class="profile-v2-header-content">
+                <div class="profile-v2-avatar-row">
+                    <div class="profile-v2-avatar" id="profileAvatar">
+                        {{ user.username|slice:":1"|upper }}
+                    </div>
+                    <button class="profile-v2-edit-btn" onclick="openEditProfileModal()">
+                        <i class="fas fa-pen"></i> Edit Profile
+                    </button>
+                </div>
+                <div class="profile-v2-info">
+                    <h2 class="profile-v2-name" id="profileName">{{ user.username }}</h2>
+                    <p class="profile-v2-username" id="profileUsername">@{{ user.username }}</p>
+                    <div class="profile-v2-meta">
+                        <span><i class="fas fa-graduation-cap"></i> <span id="profileDept">{{ user.profile.department|default:"Not specified" }}</span></span>
+                        <span><i class="fas fa-envelope"></i> {{ user.email }}</span>
+                    </div>
+                </div>
+                <div class="profile-v2-about-section">
+                    <h3 class="profile-v2-about-title">About</h3>
+                    <p class="profile-v2-about-text" id="profileBio">{{ user.profile.bio|default:"No bio added yet." }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ✅ USER POSTS SECTION -->
+        <div class="profile-posts-section">
+            <div class="profile-posts-header">
+                <h3><i class="fas fa-pen"></i> My Posts</h3>
+                <span class="post-count" id="postCount">0 posts</span>
+            </div>
+            <div id="userPostsContainer">
+                <!-- Rendered by JavaScript -->
+                <div style="text-align:center; padding:30px; color:#94a3b8;">
+                    <i class="fas fa-spinner fa-spin" style="font-size:24px;"></i>
+                    <p style="margin-top:10px;">Loading your posts...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+            
+            <!-- ========== TASKS / ASSIGNMENTS VIEW ========== -->
+            <div id="tasks" class="dashboard-view" style="display:none;">
+                <div class="tasks-header">
+                    <div class="tasks-header-left">
+                        <h1 class="page-title">📚 Assignments</h1>
+                        <p class="page-subtitle">Track your academic tasks and deadlines</p>
+                    </div>
+                    <div class="tasks-header-right">
+                        {% if user_role == 'teacher' or user_role == 'admin' %}
+                        <button id="addTaskBtn" class="add-task-btn" onclick="openAssignModal()">
+                            <i class="fas fa-plus"></i> Add Assignment
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <div id="assignmentList">
+                    <p class="empty-feed">Loading assignments...</p>
+                </div>
+            </div>
+            
+
+
+<!-- ========== NOTIFICATIONS VIEW ========== -->
+<div id="notifications" class="dashboard-view" style="display:none;">
+    
+    <div class="notification-page">
+        
+        <!-- Title - Left Aligned -->
+        <div class="notification-page-title">
+            <h1><i class="fas fa-bell"></i> Notification Center</h1>
+        </div>
+        
+        <!-- Buttons - Left Aligned -->
+        <div class="notification-page-actions">
+            <button class="action-btn btn-refresh" onclick="refreshNotifications()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button class="action-btn btn-clear" onclick="clearAllNotifications()">
+                <i class="fas fa-trash-alt"></i> Clear
+            </button>
+            <button class="action-btn btn-mark-read" onclick="markAllAsRead()">
+                <i class="fas fa-check-double"></i> Mark All Read
+            </button>
+        </div>
+        
+        <!-- Stats - Left Aligned -->
+        <div class="notification-page-stats">
+            <div class="stat-item active" onclick="filterNotifications('all', this)">
+                <span class="stat-number" id="totalNotifCount">0</span>
+                <span class="stat-label">Total</span>
+                <span class="stat-dot total-dot"></span>
+            </div>
+            <div class="stat-item" onclick="filterNotifications('unread', this)">
+                <span class="stat-number" id="unreadNotifCount">0</span>
+                <span class="stat-label">Unread</span>
+                <span class="stat-dot unread-dot"></span>
+            </div>
+            <div class="stat-item" onclick="filterNotifications('read', this)">
+                <span class="stat-number" id="readNotifCount">0</span>
+                <span class="stat-label">Read</span>
+                <span class="stat-dot read-dot"></span>
+            </div>
+        </div>
+        
+        <!-- Notification List - FULL WIDTH -->
+        <div class="notification-list-full" id="allNotificationsList">
+            <div class="notification-loading-classic">
+                <span class="loading-spinner"><i class="fas fa-spinner"></i></span>
+                <p>Loading notifications...</p>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+    <!-- ==================== MODALS ==================== -->
+    
+    <!-- Post Modal -->
+    <div class="modal-overlay" id="postModalOverlay">
+        <div class="modal-card">
+            <h2>Create New Post</h2>
+            <textarea id="postModalContent" placeholder="What's on your mind?" rows="4"></textarea>
+            <button class="save-btn" onclick="savePost()">
+                <i class="fas fa-paper-plane"></i> Post
+            </button>
+            <button class="cancel-btn" onclick="closePostModal()">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- Announcement Modal -->
+    <div class="modal-overlay" id="announcementModalOverlay">
+        <div class="modal-card">
+            <h2>Create Announcement</h2>
+            <input type="text" id="announcementTitle" placeholder="Announcement Title">
+            <input type="text" id="announcementSender" placeholder="Your Name / Department">
+            <select id="announcementCategory">
+                <option value="general">General</option>
+                <option value="events">Events</option>
+                <option value="academic">Academic</option>
+                <option value="club">Club</option>
+                <option value="sports">Sports</option>
+                <option value="admin">Admin</option>
+            </select>
+            <textarea id="announcementDesc" placeholder="Announcement details..." rows="4"></textarea>
+            <button class="save-btn" onclick="saveAnnouncement()">
+                <i class="fas fa-bullhorn"></i> Publish
+            </button>
+            <button class="cancel-btn" onclick="closeAnnouncementModal()">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- Assignment Modal -->
+    <div id="assignTaskModal" class="modal-overlay" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="header-title-container">
+                    <div class="header-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div>
+                        <h2>Assign Homework Task</h2>
+                        <p class="subtitle">Teacher View • Create & Target Assignments</p>
+                    </div>
+                </div>
+                <button class="close-btn" onclick="closeAssignModal()">&times;</button>
+            </div>
+
+            <form id="assignTaskForm" enctype="multipart/form-data" onsubmit="handleAssignmentSubmit(event)">
+                
+                <div class="form-group">
+                    <label for="taskTitleInput">ASSIGNMENT TITLE</label>
+                    <input type="text" id="taskTitleInput" name="title" placeholder="e.g. Software Architecture Lab 3" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group half-width">
+                        <label for="courseNameInput">COURSE NAME</label>
+                        <input type="text" id="courseNameInput" name="course_name" placeholder="e.g. SWE-402" required>
+                    </div>
+                    <div class="form-group half-width">
+                        <label for="dueDateInput">DUE DATE</label>
+                        <input type="date" id="dueDateInput" name="due_date" required>
+                    </div>
+                        <div class="form-group">
+                        <label for="batchInput">BATCH</label>
+                        <input type="text" id="batchInput" name="batch" placeholder="e.g. 2023" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="departmentInput">FACULTY / DEPARTMENT</label>
+                    <select id="departmentInput" name="department" required>
+                        <option value="computer">Computer Science</option>
+                        <option value="civil">Civil Engineering</option>
+                        <option value="architecture">Architecture</option>
+                        <option value="electronics">Electronics Engineering</option>
+                        <option value="mechanical">Mechanical Engineering</option>
+                        <option value="electrical">Electrical Engineering</option>
+                        <option value="general">General</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>UPLOAD TASK FILE / ATTACHMENT</label>
+                    <div class="file-drop-zone" id="dropZone" onclick="triggerFileInput()">
+                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                        <p class="drop-zone-text">Drag and drop your assignment file here, or <span class="browse-link">browse</span></p>
+                        <p class="file-size-limit">Supports PDF, DOCX, ZIP (Max 10MB)</p>
+                        <input type="file" id="fileInput" name="assignment_file" style="display: none;" onchange="updateFileName()">
+                        <div id="selectedFileName" class="selected-file-name"></div>
+                    </div>
+                </div>
+
+                <div class="targeting-card">
+                    <label for="targetAudience">WHO SHOULD DO THIS HOMEWORK?</label>
+                    <select id="targetAudience" name="target_audience">
+                        <option value="all">All Students (Public Homework)</option>
+                        <option value="section_a">Section A Only</option>
+                        <option value="section_b">Section B Only</option>
+                        <option value="section_c">Section C Only</option>
+                        <option value="section_d">Section D Only</option>
+                    </select>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeAssignModal()">Cancel</button>
+                    <button type="submit" class="btn-submit">Issue Homework</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Profile Edit Modal -->
+    <div class="modal-overlay" id="editProfileModal">
+        <div class="modal-card">
+            <h2>Edit Profile</h2>
+            <input type="text" id="editName" placeholder="Username">
+            <input type="text" id="editDept" placeholder="Department">
+            <textarea id="editBio" placeholder="Tell us about yourself..." rows="3"></textarea>
+            <button class="save-btn" onclick="saveUserProfile()">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+            <button class="cancel-btn" onclick="closeEditProfileModal()">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- ==================== JAVASCRIPT ==================== -->
+    <script src="{% static 'core/js/clean.js' %}"></script>
+    <script src="{% static 'core/js/announcement.js' %}"></script>
+    <script src="{% static 'core/js/profile.js' %}"></script>
+    <script src="{% static 'core/js/assignment.js' %}"></script>
+    <script src="{% static 'core/js/notification.js' %}"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof init === 'function') { init(); }
+            if (typeof renderUserProfile === 'function') { renderUserProfile(); }
+            if (typeof renderAnnouncements === 'function') { renderAnnouncements(); }
+            if (typeof renderAssignments === 'function') { renderAssignments(); }
+            
+            // Initialize notifications
+            if (typeof fetchNotifications === 'function') {
+                setTimeout(function() {
+                    fetchNotifications();
+                }, 500);
+            }
+        });
+        
+        // Override switchView to refresh notifications when switching to notifications view
+        const originalSwitchView = window.switchView;
+        if (typeof originalSwitchView === 'function') {
+            window.switchView = function(viewId, element) {
+                originalSwitchView(viewId, element);
+                if (viewId === 'notifications' && typeof fetchNotifications === 'function') {
+                    setTimeout(function() {
+                        fetchNotifications();
+                    }, 200);
+                }
+            };
+        }
+    </script>
+</body>
+</html>
