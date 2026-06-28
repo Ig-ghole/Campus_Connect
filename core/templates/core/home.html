@@ -37,51 +37,58 @@
 
     <div class="container">
         <!-- ==================== SIDEBAR ==================== -->
-        <aside class="sidebar" id="mainSidebar">
-            <a href="#" class="logo">
-                <div class="logo-circle">CC</div>
-                <span>Campus Connect</span>
-            </a>
-            
-            <nav class="menu">
-                <a href="#" class="active" onclick="switchView('homeView', this)">
-                    <i class="fas fa-home"></i> Home
-                </a>
-                <a href="#" onclick="switchView('announcements', this)">
-                    <i class="fas fa-bullhorn"></i> Announcements
-                </a>
-                <a href="#" onclick="switchView('profile', this)">
-                    <i class="fas fa-user"></i> Profile
-                </a>
-                <a href="#" onclick="switchView('tasks', this)">
-                    <i class="fas fa-tasks"></i> Assignments
-                </a>
-                <a href="#" onclick="switchView('notifications', this)">
-                    <i class="fas fa-bell"></i> Notifications
-                    <span class="notification-badge" id="menuNotificationBadge" style="display:none; font-size: 10px; background: #ef4444; color: white; padding: 2px 8px; border-radius: 50%; margin-left: auto;">0</span>
-                </a>
-            </nav>
-            
-            <div class="bottom-section">
-                <div class="user-card">
-                    <div class="user-avatar-small" style="background: #7c3aed; color: white;">
-                        {{ user.username|slice:":1"|upper }}
-                    </div>
-                    <div>
-                        <h4>{{ user.username }}</h4>
-                        <p id="displayRole">{{ user_role|title|default:"Student" }}</p>
-                    </div>
-                </div>
-                
-
-                    
-                
-                
-                <a href="{% url 'logout' %}" class="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
+<aside class="sidebar" id="mainSidebar">
+    <!-- Close/Open Button -->
+    <button class="sidebar-toggle" onclick="toggleSidebar()" id="sidebarToggleBtn">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+    
+    <a href="#" class="logo">
+        <div class="logo-circle">CC</div>
+        <span class="logo-text">Campus Connect</span>
+    </a>
+    
+    <nav class="menu">
+        <a href="#" class="active" onclick="switchView('homeView', this)">
+            <i class="fas fa-home"></i>
+            <span class="menu-text">Home</span>
+        </a>
+        <a href="#" onclick="switchView('announcements', this)">
+            <i class="fas fa-bullhorn"></i>
+            <span class="menu-text">Announcements</span>
+        </a>
+        <a href="#" onclick="switchView('profile', this)">
+            <i class="fas fa-user"></i>
+            <span class="menu-text">Profile</span>
+        </a>
+        <a href="#" onclick="switchView('tasks', this)">
+            <i class="fas fa-tasks"></i>
+            <span class="menu-text">Assignments</span>
+        </a>
+        <a href="#" onclick="switchView('notifications', this)">
+            <i class="fas fa-bell"></i>
+            <span class="menu-text">Notifications</span>
+            <span class="notification-badge" id="menuNotificationBadge" style="display:none; font-size: 10px; background: #ef4444; color: white; padding: 2px 8px; border-radius: 50%; margin-left: auto;">0</span>
+        </a>
+    </nav>
+    
+    <div class="bottom-section">
+        <div class="user-card">
+            <div class="user-avatar-small" style="background: #7c3aed; color: white;">
+                {{ user.username|slice:":1"|upper }}
             </div>
-        </aside>
+            <div>
+                <h4 class="user-name">{{ user.username }}</h4>
+                <p id="displayRole">{{ user_role|title|default:"Student" }}</p>
+            </div>
+        </div>
+        
+        <a href="{% url 'logout' %}" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i>
+            <span class="menu-text">Logout</span>
+        </a>
+    </div>
+</aside>
         
         <!-- ==================== CONTENT WRAPPER ==================== -->
         <div class="content-wrapper">
@@ -518,32 +525,62 @@
     <script src="{% static 'core/js/notification.js' %}"></script>
     
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            if (typeof init === 'function') { init(); }
-            if (typeof renderUserProfile === 'function') { renderUserProfile(); }
-            if (typeof renderAnnouncements === 'function') { renderAnnouncements(); }
-            if (typeof renderAssignments === 'function') { renderAssignments(); }
-            
-            // Initialize notifications
-            if (typeof fetchNotifications === 'function') {
-                setTimeout(function() {
-                    fetchNotifications();
-                }, 500);
-            }
-        });
-        
-        // Override switchView to refresh notifications when switching to notifications view
-        const originalSwitchView = window.switchView;
-        if (typeof originalSwitchView === 'function') {
-            window.switchView = function(viewId, element) {
-                originalSwitchView(viewId, element);
-                if (viewId === 'notifications' && typeof fetchNotifications === 'function') {
-                    setTimeout(function() {
-                        fetchNotifications();
-                    }, 200);
-                }
-            };
+        // ===== VERIFY OTP =====
+document.getElementById('otpInput').addEventListener('input', function() {
+    const otp = this.value.trim();
+    const email = document.getElementById('regEmail').value;
+    const statusEl = document.getElementById('otpStatus');
+    const verifiedEl = document.getElementById('otpVerified');
+    const signupBtn = document.getElementById('signupBtn');
+    
+    // Reset if less than 6 digits
+    if (otp.length < 6) {
+        otpVerified = false;
+        verifiedEl.classList.remove('show');
+        signupBtn.disabled = true;
+        if (otp.length > 0) {
+            statusEl.textContent = `⏳ Enter ${6 - otp.length} more digit(s)...`;
+            statusEl.className = 'otp-status';
         }
+        return;
+    }
+    
+    // Only verify if 6 digits are entered
+    if (otp.length === 6 && /^\d{6}$/.test(otp)) {
+        statusEl.textContent = '⏳ Verifying OTP...';
+        statusEl.className = 'otp-status';
+        
+        fetch('/verify-otp/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrftoken
+            },
+            body: `email=${encodeURIComponent(email)}&otp=${encodeURIComponent(otp)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                otpVerified = true;
+                verifiedEl.classList.add('show');
+                statusEl.textContent = '✅ OTP verified! You can now create your account.';
+                statusEl.className = 'otp-status success';
+                signupBtn.disabled = false;
+            } else {
+                otpVerified = false;
+                verifiedEl.classList.remove('show');
+                statusEl.textContent = '❌ ' + (data.error || 'Invalid OTP');
+                statusEl.className = 'otp-status error';
+                signupBtn.disabled = true;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            statusEl.textContent = '❌ Error verifying OTP';
+            statusEl.className = 'otp-status error';
+        });
+    }
+});
     </script>
 </body>
 </html>
