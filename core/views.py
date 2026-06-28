@@ -12,8 +12,9 @@ import random
 from django.core.mail import send_mail
 from django.utils import timezone
 from .models import OTP
+from django.conf import settings
 
-# ==================== AUTHENTICATION VIEWS ====================
+
 
 # ==================== AUTHENTICATION VIEWS ====================
 
@@ -693,11 +694,7 @@ def get_user_posts(request):
 
 # ==================== OTP VIEWS ====================
 
-import random
-from django.core.mail import send_mail
-from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
-from .models import OTP
+
 
 def generate_otp():
     return str(random.randint(100000, 999999))
