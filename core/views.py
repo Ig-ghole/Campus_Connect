@@ -12,9 +12,6 @@ import random
 from django.core.mail import send_mail
 from django.utils import timezone
 from .models import OTP
-from django.conf import settings
-
-
 
 # ==================== AUTHENTICATION VIEWS ====================
 
@@ -29,6 +26,8 @@ def signup(request):
         role = request.POST.get('role', 'student')
         department = request.POST.get('dept', '').strip()
         bio = request.POST.get('bio', '').strip()
+        section = request.POST.get('section', '').strip()
+        batch = request.POST.get('batch', '').strip()
         
         # Validation
         if not full_name or not email or not password:
@@ -58,8 +57,7 @@ def signup(request):
             username=email,
             email=email,
             password=password,
-            first_name='',
-            last_name=''
+            
         )
         
         # Create profile
@@ -67,7 +65,10 @@ def signup(request):
             user=user,
             role=role,
             department=department,
-            bio=bio
+            section=section,
+            batch=batch,
+            bio=bio,
+            
         )
         
         # ✅ Clear session
@@ -81,6 +82,8 @@ def signup(request):
         return redirect('login')
     
     return render(request, 'core/signup.html')
+
+
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -96,7 +99,7 @@ def login_view(request):
             
             if user is not None:
                 auth_login(request, user)
-                return redirect('home')
+                return redirect('/')
             else:
                 messages.error(request, 'Invalid email or password')
         except User.DoesNotExist:
@@ -425,17 +428,13 @@ def update_profile(request):
         username = request.POST.get('editName', '').strip()
         department = request.POST.get('editDept', '').strip()
         bio = request.POST.get('editBio', '').strip()
-        
         # Update username if provided
         if username:
-            # Check if username is already taken by another user
             if User.objects.filter(username=username).exclude(id=request.user.id).exists():
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return JsonResponse({'success': False, 'error': 'Username already taken'})
                 messages.error(request, 'Username already taken')
                 return redirect('home')
-            
-            # Update username
             request.user.username = username
             request.user.save()
         
@@ -454,6 +453,8 @@ def update_profile(request):
                     'email': request.user.email,
                     'full_name': request.user.username,
                     'department': profile.department,
+                    'section': profile.section,  # ✅ Read-only (from signup)
+                    'batch': profile.batch,      # ✅ Read-only (from signup)
                     'bio': profile.bio,
                 }
             })
@@ -520,24 +521,24 @@ def create_assignment(request):
             file=file
         )
         
-        # ✅ Create notifications for ALL students (except author)
-        #students = User.objects.filter(profile__role='student').exclude(id=request.user.id)
-        #notification_count = 0
+        #✅ Create notifications for ALL students (except author)
+        students = User.objects.filter(profile__role='student').exclude(id=request.user.id)
+        notification_count = 0
         
-        #for student in students:
-            #try:
-                #Notification.objects.create(
-                    #recipient=student,
-                    #sender=request.user,
-                    #notification_type='assignment',
-                    #message=f"📚 New assignment: {title} - {course_name} (Due: {due_date_obj.strftime('%B %d, %Y')})",
-                    #link=f"/tasks/"
-                #)
-                #notification_count += 1
-            #except Exception as e:
-                #print(f"Error creating assignment notification for {student.username}: {e}")
+        for student in students:
+            try:
+                Notification.objects.create(
+                    recipient=student,
+                    sender=request.user,
+                    notification_type='assignment',
+                    message=f"📚 New assignment: {title} - {course_name} (Due: {due_date_obj.strftime('%B %d, %Y')})",
+                    link=f"/tasks/"
+                )
+                notification_count += 1
+            except Exception as e:
+                print(f"Error creating assignment notification for {student.username}: {e}")
         
-        #print(f"✅ Assignment notification sent to {notification_count} students")
+        print(f"✅ Assignment notification sent to {notification_count} students")
         
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({
@@ -564,17 +565,80 @@ def create_assignment(request):
     return redirect('home')
     
     
+from django.db import models
+
 @login_required
 def get_assignments(request):
     assignments = Assignment.objects.all().prefetch_related('author')
     
-    # Filter based on user role
     try:
         profile = Profile.objects.get(user=request.user)
-        if profile.role == 'student':
-            assignments = assignments.filter(target_audience__in=['all', 'section_a'])
+        user_department = profile.department
+        user_section = profile.section
+        user_batch = profile.batch
+        user_role = profile.role
     except Profile.DoesNotExist:
-        pass
+        user_department = ''
+        user_section = ''
+        user_batch = ''
+        user_role = 'student'
+    
+    # ✅ DEBUG: Print to check values
+    print(f"👤 User: {request.user.username}")
+    print(f"   Department: '{user_department}'")
+    print(f"   Section: '{user_section}'")
+    print(f"   Batch: '{user_batch}'")
+    print(f"   Role: '{user_role}'")
+    
+    if user_role == 'student':
+        # ✅ FIX: Use the same department format
+        # If student has 'BE Computer', filter by 'computer' (the key)
+        # OR match exactly
+        department_filter = user_department
+        
+        # ✅ If student has 'BE Computer', convert to 'computer'
+        dept_mapping = {
+            'BE Computer': 'computer',
+            'BE Civil': 'civil',
+            'BE Architecture': 'architecture',
+            'BE Electronics': 'electronics',
+            'BE IT': 'mechanical',
+            'BE Electrical': 'electrical',
+        }
+        
+        if user_department in dept_mapping:
+            department_filter = dept_mapping[user_department]
+        
+        assignments = assignments.filter(
+            models.Q(department=department_filter) | 
+            models.Q(department='general') |
+            models.Q(department='General')
+        )
+        
+        # ✅ Also filter by section if student has section
+        if user_section:
+            # Convert section_a to match target_audience format
+            section_filter = f"section_{user_section.lower()}"
+            assignments = assignments.filter(
+                models.Q(target_audience='all') |
+                models.Q(target_audience=section_filter)
+            )
+        
+        # ✅ Also filter by batch if student has batch
+        if user_batch:
+            assignments = assignments.filter(
+                models.Q(batch=user_batch) |
+                models.Q(batch='') |
+                models.Q(batch__isnull=True)
+            )
+        
+        print(f"✅ Student sees: {assignments.count()} assignments")
+        
+    elif user_role == 'teacher':
+        assignments = assignments.filter(
+            models.Q(author=request.user) |
+            models.Q(department=user_department)
+        )
     
     data = []
     for assignment in assignments:
@@ -584,8 +648,8 @@ def get_assignments(request):
             'course_name': assignment.course_name,
             'department': assignment.get_department_display(),
             'department_key': assignment.department,
-            'due_date': assignment.due_date.strftime('%B %d, %Y'),  # ✅ Format here too
             'batch': assignment.batch,
+            'due_date': assignment.due_date.strftime('%B %d, %Y'),
             'target_audience': assignment.get_target_audience_display(),
             'file_url': assignment.file.url if assignment.file else None,
             'author': assignment.author.username,
@@ -626,6 +690,8 @@ def get_notifications(request):
     }
     
     for notification in notifications[:20]:  # Last 20 notifications
+        # ✅ Convert to local timezone
+        local_time = timezone.localtime(notification.created_at)
         data['notifications'].append({
             'id': notification.id,
             'type': notification.notification_type,
@@ -692,9 +758,16 @@ def get_user_posts(request):
 
 
 
+
+
+
 # ==================== OTP VIEWS ====================
 
-
+import random
+from django.core.mail import send_mail
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from .models import OTP
 
 def generate_otp():
     return str(random.randint(100000, 999999))

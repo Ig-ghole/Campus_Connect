@@ -21,6 +21,13 @@
     <meta name="csrf-token" content="{{ csrf_token }}">
 </head>
 <body>
+
+    <!-- ==================== LOADING OVERLAY ==================== -->
+    <div id="loadingOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#f8fafc; z-index:9999; display:flex; align-items:center; justify-content:center; flex-direction:column; transition: opacity 0.5s ease;">
+        <div style="width:50px; height:50px; border:4px solid #e2e8f0; border-top-color:#7c3aed; border-radius:50%; animation: spin 0.8s linear infinite;"></div>
+        <p style="margin-top:16px; color:#64748b; font-weight:500;">Loading Campus Connect...</p>
+    </div>
+
     <!-- ==================== CURRENT USER DATA ==================== -->
     <script>
         const CURRENT_USER = {
@@ -30,6 +37,8 @@
             role: "{{ user_role|default:'student' }}",
             email: "{{ user.email }}",
             department: "{{ user.profile.department|default:'' }}",
+            section: "{{ user.profile.section|default:'Not specified' }}",
+            batch: "{{ user.profile.batch|default:'Not specified' }}",
             bio: "{{ user.profile.bio|default:'' }}"
         };
         const csrftoken = document.querySelector('[name=csrf-token]').content;
@@ -37,58 +46,57 @@
 
     <div class="container">
         <!-- ==================== SIDEBAR ==================== -->
-<aside class="sidebar" id="mainSidebar">
-    <!-- Close/Open Button -->
-    <button class="sidebar-toggle" onclick="toggleSidebar()" id="sidebarToggleBtn">
-        <i class="fas fa-chevron-left"></i>
-    </button>
-    
-    <a href="#" class="logo">
-        <div class="logo-circle">CC</div>
-        <span class="logo-text">Campus Connect</span>
-    </a>
-    
-    <nav class="menu">
-        <a href="#" class="active" onclick="switchView('homeView', this)">
-            <i class="fas fa-home"></i>
-            <span class="menu-text">Home</span>
-        </a>
-        <a href="#" onclick="switchView('announcements', this)">
-            <i class="fas fa-bullhorn"></i>
-            <span class="menu-text">Announcements</span>
-        </a>
-        <a href="#" onclick="switchView('profile', this)">
-            <i class="fas fa-user"></i>
-            <span class="menu-text">Profile</span>
-        </a>
-        <a href="#" onclick="switchView('tasks', this)">
-            <i class="fas fa-tasks"></i>
-            <span class="menu-text">Assignments</span>
-        </a>
-        <a href="#" onclick="switchView('notifications', this)">
-            <i class="fas fa-bell"></i>
-            <span class="menu-text">Notifications</span>
-            <span class="notification-badge" id="menuNotificationBadge" style="display:none; font-size: 10px; background: #ef4444; color: white; padding: 2px 8px; border-radius: 50%; margin-left: auto;">0</span>
-        </a>
-    </nav>
-    
-    <div class="bottom-section">
-        <div class="user-card">
-            <div class="user-avatar-small" style="background: #7c3aed; color: white;">
-                {{ user.username|slice:":1"|upper }}
+        <aside class="sidebar" id="mainSidebar">
+            <button class="sidebar-toggle" onclick="toggleSidebar()" id="sidebarToggleBtn">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            
+            <a href="#" class="logo">
+                <div class="logo-circle">CC</div>
+                <span class="logo-text">Campus Connect</span>
+            </a>
+            
+            <nav class="menu">
+                <a href="#" class="active" onclick="switchView('homeView', this)" data-view="homeView">
+                    <i class="fas fa-home"></i>
+                    <span class="menu-text">Home</span>
+                </a>
+                <a href="#" onclick="switchView('announcements', this)" data-view="announcements">
+                    <i class="fas fa-bullhorn"></i>
+                    <span class="menu-text">Announcements</span>
+                </a>
+                <a href="#" onclick="switchView('profile', this)" data-view="profile">
+                    <i class="fas fa-user"></i>
+                    <span class="menu-text">Profile</span>
+                </a>
+                <a href="#" onclick="switchView('tasks', this)" data-view="tasks">
+                    <i class="fas fa-tasks"></i>
+                    <span class="menu-text">Assignments</span>
+                </a>
+                <a href="#" onclick="switchView('notifications', this)" data-view="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="menu-text">Notifications</span>
+                    <span class="notification-badge" id="menuNotificationBadge" style="display:none;">0</span>
+                </a>
+            </nav>
+            
+            <div class="bottom-section">
+                <div class="user-card">
+                    <div class="user-avatar-small" style="background: #7c3aed; color: white;">
+                        {{ user.username|slice:":1"|upper }}
+                    </div>
+                    <div>
+                        <h4 class="user-name">{{ user.username }}</h4>
+                        <p id="displayRole">{{ user_role|title|default:"Student" }}</p>
+                    </div>
+                </div>
+                
+                <a href="{% url 'logout' %}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span class="menu-text">Logout</span>
+                </a>
             </div>
-            <div>
-                <h4 class="user-name">{{ user.username }}</h4>
-                <p id="displayRole">{{ user_role|title|default:"Student" }}</p>
-            </div>
-        </div>
-        
-        <a href="{% url 'logout' %}" class="logout-btn">
-            <i class="fas fa-sign-out-alt"></i>
-            <span class="menu-text">Logout</span>
-        </a>
-    </div>
-</aside>
+        </aside>
         
         <!-- ==================== CONTENT WRAPPER ==================== -->
         <div class="content-wrapper">
@@ -197,119 +205,111 @@
                     {% else %}
                         <p class="empty-events">No upcoming events</p>
                     {% endif %}
-                    
-                    <h3 class="panel-title" style="margin-top:30px;"><i class="fas fa-users"></i> Quick Links</h3>
-                    <ul class="quick-links">
-                        <li><a href="#"><i class="fas fa-book"></i> Library</a></li>
-                        <li><a href="#"><i class="fas fa-calendar-check"></i> Academic Calendar</a></li>
-                        <li><a href="#"><i class="fas fa-envelope"></i> Student Support</a></li>
-                        <li><a href="#"><i class="fas fa-laptop"></i> E-Learning Portal</a></li>
-                    </ul>
                 </aside>
             </div>
             
-<!-- ========== ANNOUNCEMENTS VIEW ========== -->
-<div id="announcements" class="dashboard-view" style="display:none;">
-    <div class="announcements-header">
-        <div class="announcements-header-left">
-            <h1 class="page-title">Announcements</h1>
-            <p class="page-subtitle">Stay updated with campus news and events</p>
-        </div>
-        <div class="announcements-header-right">
-            <!-- ✅ ONLY ADMIN CAN SEE THIS BUTTON -->
-            {% if user_role == 'admin' %}
-            <button class="add-announcement-btn" onclick="openAnnouncementModal()">
-                <i class="fas fa-plus"></i> New Announcement
-            </button>
-            {% endif %}
-        </div>
-    </div>
-    
-    <div class="filter-tags-bar">
-        <button class="filter-tag active" onclick="filterAnnouncements('general', this)">General</button>
-        <button class="filter-tag" onclick="filterAnnouncements('events', this)">Events</button>
-        <button class="filter-tag" onclick="filterAnnouncements('admin', this)">Admin</button>
-    </div>
-    
-    <div id="announcementsContainer">
-        {% if announcements %}
-            {% for announcement in announcements %}
-            <div class="announcement-card" data-category="{{ announcement.category }}" data-announcement-id="{{ announcement.id }}">
-                <div class="announcement-main-content">
-                    <div class="announcement-meta">
-                        <span class="category-badge badge-{{ announcement.category }}">
-                            {{ announcement.get_category_display_name }}
-                        </span>
-                        <span class="announcement-date">{{ announcement.created_at|date:"M d, Y" }}</span>
-                        {% if announcement.is_pinned %}
-                        <span class="category-badge" style="background: #fef3c7; color: #d97706;">
-                            <i class="fas fa-thumbtack"></i> Pinned
-                        </span>
+            <!-- ========== ANNOUNCEMENTS VIEW ========== -->
+            <div id="announcements" class="dashboard-view" style="display:none;">
+                <div class="announcements-header">
+                    <div class="announcements-header-left">
+                        <h1 class="page-title">Announcements</h1>
+                        <p class="page-subtitle">Stay updated with campus news and events</p>
+                    </div>
+                    <div class="announcements-header-right">
+                        {% if user_role == 'admin' %}
+                        <button class="add-announcement-btn" onclick="openAnnouncementModal()">
+                            <i class="fas fa-plus"></i> New Announcement
+                        </button>
                         {% endif %}
                     </div>
-                    <h3>{{ announcement.title }}</h3>
-                    <p class="announcement-sender">From: {{ announcement.author.username }}</p>
-                    <p class="announcement-desc">{{ announcement.content }}</p>
                 </div>
-                <!-- ✅ ONLY ADMIN CAN DELETE -->
-                {% if announcement.author == user and user_role == 'admin' %}
-                <button onclick="deleteAnnouncement({{ announcement.id }})" class="delete-btn" title="Delete Announcement">
-                    <i class="fas fa-trash"></i>
-                </button>
-                {% endif %}
+                
+                <div class="filter-tags-bar">
+                    <button class="filter-tag active" onclick="filterAnnouncements('general', this)">General</button>
+                    <button class="filter-tag" onclick="filterAnnouncements('events', this)">Events</button>
+                    <button class="filter-tag" onclick="filterAnnouncements('admin', this)">Admin</button>
+                </div>
+                
+                <div id="announcementsContainer">
+                    {% if announcements %}
+                        {% for announcement in announcements %}
+                        <div class="announcement-card" data-category="{{ announcement.category }}" data-announcement-id="{{ announcement.id }}">
+                            <div class="announcement-main-content">
+                                <div class="announcement-meta">
+                                    <span class="category-badge badge-{{ announcement.category }}">
+                                        {{ announcement.get_category_display_name }}
+                                    </span>
+                                    <span class="announcement-date">{{ announcement.created_at|date:"M d, Y" }}</span>
+                                    {% if announcement.is_pinned %}
+                                    <span class="category-badge" style="background: #fef3c7; color: #d97706;">
+                                        <i class="fas fa-thumbtack"></i> Pinned
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <h3>{{ announcement.title }}</h3>
+                                <p class="announcement-sender">From: {{ announcement.author.username }}</p>
+                                <p class="announcement-desc">{{ announcement.content }}</p>
+                            </div>
+                            {% if announcement.author == user and user_role == 'admin' %}
+                            <button onclick="deleteAnnouncement({{ announcement.id }})" class="delete-btn" title="Delete Announcement">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="empty-announcements">No announcements yet.</p>
+                    {% endif %}
+                </div>
             </div>
-            {% endfor %}
-        {% else %}
-            <p class="empty-announcements">No announcements yet.</p>
-        {% endif %}
-    </div>
-</div>
             
-<!-- ========== PROFILE VIEW ========== -->
-<div id="profile" class="dashboard-view" style="display:none;">
-    <div class="profile-v2-container">
-        <div class="profile-v2-card">
-            <div class="profile-v2-banner"></div>
-            <div class="profile-v2-header-content">
-                <div class="profile-v2-avatar-row">
-                    <div class="profile-v2-avatar" id="profileAvatar">
-                        {{ user.username|slice:":1"|upper }}
+            <!-- ========== PROFILE VIEW ========== -->
+            <div id="profile" class="dashboard-view" style="display:none;">
+                <div class="profile-v2-container">
+                    <div class="profile-v2-card">
+                        <div class="profile-v2-banner"></div>
+                        <div class="profile-v2-header-content">
+                            <div class="profile-v2-avatar-row">
+                                <div class="profile-v2-avatar" id="profileAvatar">
+                                    {{ user.username|slice:":1"|upper }}
+                                </div>
+                                <button class="profile-v2-edit-btn" onclick="openEditProfileModal()">
+                                    <i class="fas fa-pen"></i> Edit Profile
+                                </button>
+                            </div>
+                            <div class="profile-v2-info">
+                                <h2 class="profile-v2-name" id="profileName">{{ user.username }}</h2>
+                                <p class="profile-v2-username" id="profileUsername">@{{ user.username }}</p>
+                                <div class="profile-v2-meta">
+                                    <span><i class="fas fa-graduation-cap"></i> <span id="profileDept">{{ user.profile.department|default:"Not specified" }}</span></span>
+                                    {% if user_role == 'student' %}
+                                    <span><i class="fas fa-users"></i> Section: <span id="profileSection">{{ user.profile.section|default:"Not specified" }}</span></span>
+                                    <span><i class="fas fa-calendar-alt"></i> Batch: <span id="profileBatch">{{ user.profile.batch|default:"Not specified" }}</span></span>
+                                    {% endif %}
+                                    <span><i class="fas fa-envelope"></i> {{ user.email }}</span>
+                                </div>
+                            </div>
+                            <div class="profile-v2-about-section">
+                                <h3 class="profile-v2-about-title">About</h3>
+                                <p class="profile-v2-about-text" id="profileBio">{{ user.profile.bio|default:"No bio added yet." }}</p>
+                            </div>
+                        </div>
                     </div>
-                    <button class="profile-v2-edit-btn" onclick="openEditProfileModal()">
-                        <i class="fas fa-pen"></i> Edit Profile
-                    </button>
-                </div>
-                <div class="profile-v2-info">
-                    <h2 class="profile-v2-name" id="profileName">{{ user.username }}</h2>
-                    <p class="profile-v2-username" id="profileUsername">@{{ user.username }}</p>
-                    <div class="profile-v2-meta">
-                        <span><i class="fas fa-graduation-cap"></i> <span id="profileDept">{{ user.profile.department|default:"Not specified" }}</span></span>
-                        <span><i class="fas fa-envelope"></i> {{ user.email }}</span>
+                    
+                    <div class="profile-posts-section">
+                        <div class="profile-posts-header">
+                            <h3><i class="fas fa-pen"></i> My Posts</h3>
+                            <span class="post-count" id="postCount">0 posts</span>
+                        </div>
+                        <div id="userPostsContainer">
+                            <div style="text-align:center; padding:30px; color:#94a3b8;">
+                                <i class="fas fa-spinner fa-spin" style="font-size:24px;"></i>
+                                <p style="margin-top:10px;">Loading your posts...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="profile-v2-about-section">
-                    <h3 class="profile-v2-about-title">About</h3>
-                    <p class="profile-v2-about-text" id="profileBio">{{ user.profile.bio|default:"No bio added yet." }}</p>
-                </div>
             </div>
-        </div>
-        
-        <!-- ✅ USER POSTS SECTION -->
-        <div class="profile-posts-section">
-            <div class="profile-posts-header">
-                <h3><i class="fas fa-pen"></i> My Posts</h3>
-                <span class="post-count" id="postCount">0 posts</span>
-            </div>
-            <div id="userPostsContainer">
-                <!-- Rendered by JavaScript -->
-                <div style="text-align:center; padding:30px; color:#94a3b8;">
-                    <i class="fas fa-spinner fa-spin" style="font-size:24px;"></i>
-                    <p style="margin-top:10px;">Loading your posts...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
             
             <!-- ========== TASKS / ASSIGNMENTS VIEW ========== -->
             <div id="tasks" class="dashboard-view" style="display:none;">
@@ -331,61 +331,54 @@
                 </div>
             </div>
             
-
-
-<!-- ========== NOTIFICATIONS VIEW ========== -->
-<div id="notifications" class="dashboard-view" style="display:none;">
-    
-    <div class="notification-page">
-        
-        <!-- Title - Left Aligned -->
-        <div class="notification-page-title">
-            <h1><i class="fas fa-bell"></i> Notification Center</h1>
-        </div>
-        
-        <!-- Buttons - Left Aligned -->
-        <div class="notification-page-actions">
-            <button class="action-btn btn-refresh" onclick="refreshNotifications()">
-                <i class="fas fa-sync-alt"></i> Refresh
-            </button>
-            <button class="action-btn btn-clear" onclick="clearAllNotifications()">
-                <i class="fas fa-trash-alt"></i> Clear
-            </button>
-            <button class="action-btn btn-mark-read" onclick="markAllAsRead()">
-                <i class="fas fa-check-double"></i> Mark All Read
-            </button>
-        </div>
-        
-        <!-- Stats - Left Aligned -->
-        <div class="notification-page-stats">
-            <div class="stat-item active" onclick="filterNotifications('all', this)">
-                <span class="stat-number" id="totalNotifCount">0</span>
-                <span class="stat-label">Total</span>
-                <span class="stat-dot total-dot"></span>
-            </div>
-            <div class="stat-item" onclick="filterNotifications('unread', this)">
-                <span class="stat-number" id="unreadNotifCount">0</span>
-                <span class="stat-label">Unread</span>
-                <span class="stat-dot unread-dot"></span>
-            </div>
-            <div class="stat-item" onclick="filterNotifications('read', this)">
-                <span class="stat-number" id="readNotifCount">0</span>
-                <span class="stat-label">Read</span>
-                <span class="stat-dot read-dot"></span>
-            </div>
-        </div>
-        
-        <!-- Notification List - FULL WIDTH -->
-        <div class="notification-list-full" id="allNotificationsList">
-            <div class="notification-loading-classic">
-                <span class="loading-spinner"><i class="fas fa-spinner"></i></span>
-                <p>Loading notifications...</p>
+            <!-- ========== NOTIFICATIONS VIEW ========== -->
+            <div id="notifications" class="dashboard-view" style="display:none;">
+                <div class="notification-page">
+                    <div class="notification-page-title">
+                        <h1><i class="fas fa-bell"></i> Notification Center</h1>
+                    </div>
+                    
+                    <div class="notification-page-actions">
+                        <button class="action-btn btn-refresh" onclick="refreshNotifications()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <button class="action-btn btn-clear" onclick="clearAllNotifications()">
+                            <i class="fas fa-trash-alt"></i> Clear
+                        </button>
+                        <button class="action-btn btn-mark-read" onclick="markAllAsRead()">
+                            <i class="fas fa-check-double"></i> Mark All Read
+                        </button>
+                    </div>
+                    
+                    <div class="notification-page-stats">
+                        <div class="stat-item active" onclick="filterNotifications('all', this)">
+                            <span class="stat-number" id="totalNotifCount">0</span>
+                            <span class="stat-label">Total</span>
+                            <span class="stat-dot total-dot"></span>
+                        </div>
+                        <div class="stat-item" onclick="filterNotifications('unread', this)">
+                            <span class="stat-number" id="unreadNotifCount">0</span>
+                            <span class="stat-label">Unread</span>
+                            <span class="stat-dot unread-dot"></span>
+                        </div>
+                        <div class="stat-item" onclick="filterNotifications('read', this)">
+                            <span class="stat-number" id="readNotifCount">0</span>
+                            <span class="stat-label">Read</span>
+                            <span class="stat-dot read-dot"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="notification-list-full" id="allNotificationsList">
+                        <div class="notification-loading-classic">
+                            <span class="loading-spinner"><i class="fas fa-spinner"></i></span>
+                            <p>Loading notifications...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        
     </div>
-</div>
-
+    
     <!-- ==================== MODALS ==================== -->
     
     <!-- Post Modal -->
@@ -409,9 +402,6 @@
             <select id="announcementCategory">
                 <option value="general">General</option>
                 <option value="events">Events</option>
-                <option value="academic">Academic</option>
-                <option value="club">Club</option>
-                <option value="sports">Sports</option>
                 <option value="admin">Admin</option>
             </select>
             <textarea id="announcementDesc" placeholder="Announcement details..." rows="4"></textarea>
@@ -439,7 +429,6 @@
             </div>
 
             <form id="assignTaskForm" enctype="multipart/form-data" onsubmit="handleAssignmentSubmit(event)">
-                
                 <div class="form-group">
                     <label for="taskTitleInput">ASSIGNMENT TITLE</label>
                     <input type="text" id="taskTitleInput" name="title" placeholder="e.g. Software Architecture Lab 3" required>
@@ -454,7 +443,7 @@
                         <label for="dueDateInput">DUE DATE</label>
                         <input type="date" id="dueDateInput" name="due_date" required>
                     </div>
-                        <div class="form-group">
+                    <div class="form-group">
                         <label for="batchInput">BATCH</label>
                         <input type="text" id="batchInput" name="batch" placeholder="e.g. 2023" required>
                     </div>
@@ -463,12 +452,12 @@
                 <div class="form-group">
                     <label for="departmentInput">FACULTY / DEPARTMENT</label>
                     <select id="departmentInput" name="department" required>
-                        <option value="computer">Computer Science</option>
-                        <option value="civil">Civil Engineering</option>
+                        <option value="computer">BE Computer</option>
+                        <option value="civil">BE Civil</option>
                         <option value="architecture">Architecture</option>
-                        <option value="electronics">Electronics Engineering</option>
-                        <option value="mechanical">Mechanical Engineering</option>
-                        <option value="electrical">Electrical Engineering</option>
+                        <option value="electronics">BE Electronics</option>
+                        <option value="mechanical">BE IT</option>
+                        <option value="electrical">BE Electrical</option>
                         <option value="general">General</option>
                     </select>
                 </div>
@@ -525,62 +514,75 @@
     <script src="{% static 'core/js/notification.js' %}"></script>
     
     <script>
-        // ===== VERIFY OTP =====
-document.getElementById('otpInput').addEventListener('input', function() {
-    const otp = this.value.trim();
-    const email = document.getElementById('regEmail').value;
-    const statusEl = document.getElementById('otpStatus');
-    const verifiedEl = document.getElementById('otpVerified');
-    const signupBtn = document.getElementById('signupBtn');
-    
-    // Reset if less than 6 digits
-    if (otp.length < 6) {
-        otpVerified = false;
-        verifiedEl.classList.remove('show');
-        signupBtn.disabled = true;
-        if (otp.length > 0) {
-            statusEl.textContent = `⏳ Enter ${6 - otp.length} more digit(s)...`;
-            statusEl.className = 'otp-status';
-        }
-        return;
-    }
-    
-    // Only verify if 6 digits are entered
-    if (otp.length === 6 && /^\d{6}$/.test(otp)) {
-        statusEl.textContent = '⏳ Verifying OTP...';
-        statusEl.className = 'otp-status';
+        // ==================== APP INITIALIZATION ====================
         
-        fetch('/verify-otp/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': csrftoken
-            },
-            body: `email=${encodeURIComponent(email)}&otp=${encodeURIComponent(otp)}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                otpVerified = true;
-                verifiedEl.classList.add('show');
-                statusEl.textContent = '✅ OTP verified! You can now create your account.';
-                statusEl.className = 'otp-status success';
-                signupBtn.disabled = false;
-            } else {
-                otpVerified = false;
-                verifiedEl.classList.remove('show');
-                statusEl.textContent = '❌ ' + (data.error || 'Invalid OTP');
-                statusEl.className = 'otp-status error';
-                signupBtn.disabled = true;
+        function initializeApp() {
+            console.log('🚀 Initializing app...');
+            
+            // Initialize main app
+            if (typeof init === 'function') {
+                init();
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            statusEl.textContent = '❌ Error verifying OTP';
-            statusEl.className = 'otp-status error';
+            
+            // Render profile
+            if (typeof renderUserProfile === 'function') {
+                renderUserProfile();
+            }
+            
+            // Render announcements
+            if (typeof renderAnnouncements === 'function') {
+                renderAnnouncements();
+            }
+            
+            // Render assignments
+            if (typeof renderAssignments === 'function') {
+                renderAssignments();
+            }
+            
+            // Initialize notifications
+            if (typeof fetchNotifications === 'function') {
+                setTimeout(function() {
+                    fetchNotifications();
+                }, 500);
+            }
+            
+            // ✅ Restore view
+            setTimeout(function() {
+                console.log('⏰ Restoring view...');
+                if (typeof restoreView === 'function') {
+                    restoreView();
+                }
+            }, 10);
+            
+            // ✅ Hide loading overlay
+            setTimeout(function() {
+                const overlay = document.getElementById('loadingOverlay');
+                if (overlay) {
+                    overlay.style.opacity = '0';
+                    setTimeout(function() {
+                        overlay.style.display = 'none';
+                        console.log('✅ App ready!');
+                    }, 500);
+                }
+            }, 300);
+        }
+        
+        // ✅ Run when page is fully loaded
+        if (document.readyState === 'complete') {
+            initializeApp();
+        } else {
+            window.addEventListener('load', initializeApp);
+        }
+        
+        // ✅ Fallback
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOM loaded');
+            if (document.readyState !== 'complete') {
+                if (typeof init === 'function') {
+                    init();
+                }
+            }
         });
-    }
-});
     </script>
 </body>
 </html>

@@ -311,6 +311,7 @@
             </div>
         {% endif %}
 
+        <!-- ✅ FORM WITH CSRF TOKEN -->
         <form action="{% url 'signup' %}" method="POST" onsubmit="return validateSignupForm(event)">
             {% csrf_token %}
         
@@ -342,26 +343,42 @@
             <div id="dynamicInputs" class="extra-fields-area hidden"></div>
 
             <button type="submit" id="signupBtn" disabled>Create Account</button>
-        </form>  <!-- ❌ This closes the form -->
+        </form>
 
-<!-- ✅ Login link is outside the form - this is CORRECT -->
-<div style="text-align: center; margin-top: 18px;">
-    <a href="{% url 'login' %}" style="color: #7c3aed; text-decoration: none; font-weight: 500; font-size: 14px;">
-        Already have an account? <strong>Login</strong>
-    </a>
-</div>
-    
+        <!-- ✅ Login link outside form -->
+        <div style="text-align: center; margin-top: 18px;">
+            <a href="{% url 'login' %}" style="color: #7c3aed; text-decoration: none; font-weight: 500; font-size: 14px;">
+                Already have an account? <strong>Login</strong>
+            </a>
+        </div>
+        
     </div>
 </div>
-
 
 <script>
     // ===== OTP VARIABLES =====
     let otpVerified = false;
     let otpTimer = null;
     
-    // Get CSRF token from the page
-    const csrftoken = document.querySelector('[name=csrf-token]')?.content || '';
+    // ===== CSRF TOKEN HELPER =====
+    function getCsrfToken() {
+        // Try from meta tag first
+        const metaToken = document.querySelector('[name=csrf-token]');
+        if (metaToken) return metaToken.content;
+        
+        // Try from cookie
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith('csrftoken=')) {
+                return decodeURIComponent(cookie.substring(10));
+            }
+        }
+        return '';
+    }
+
+    const csrftoken = getCsrfToken();
+    console.log('CSRF Token:', csrftoken);  // Debug - check console
 
     // ===== DOMAIN VALIDATION =====
     function isNECDomain(email) {
@@ -482,7 +499,9 @@
         
         // Only verify if 6 digits are entered
         if (otp.length === 6 && /^\d{6}$/.test(otp)) {
-            // Auto-verify OTP
+            statusEl.textContent = '⏳ Verifying OTP...';
+            statusEl.className = 'otp-status';
+            
             fetch('/verify-otp/', {
                 method: 'POST',
                 headers: {
@@ -546,26 +565,6 @@
         
         return true;
     }
-
-    // ===== CSRF TOKEN HELPER =====
-    // Get CSRF token from cookie if not available in meta
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-
-    // Use csrftoken from meta or cookie
-    const csrfToken = document.querySelector('[name=csrf-token]')?.content || getCookie('csrftoken') || '';
 </script>
 </body>
 </html>

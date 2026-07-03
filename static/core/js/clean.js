@@ -49,6 +49,8 @@ function showToast(message, type = 'success') {
 
 // --- Core Functions ---
 function init() {
+    console.log('🔧 init() called');
+    
     // Get user role from global CURRENT_USER
     let userRole = 'student';
     if (typeof CURRENT_USER !== 'undefined' && CURRENT_USER.role) {
@@ -90,7 +92,6 @@ function loadPostsFromDOM() {
         const authorName = card.querySelector('.feed-user-info h4')?.textContent || 'User';
         const timeText = card.querySelector('.feed-user-info h4 span')?.textContent || '';
         
-        // Get comments from DOM
         const commentItems = card.querySelectorAll('.comment-item');
         const comments = [];
         commentItems.forEach(item => {
@@ -104,7 +105,6 @@ function loadPostsFromDOM() {
             }
         });
         
-        // Check if user has liked this post
         const likeSpan = card.querySelector('.feed-actions span[data-post-id]');
         let isLiked = false;
         let likeCount = 0;
@@ -136,13 +136,11 @@ function renderFeed() {
     const feedContainer = document.getElementById('feedList');
     if (!feedContainer) return;
     
-    // If we have Django posts, don't override them
     const djangoPosts = document.querySelectorAll('.feed-card');
     if (djangoPosts.length > 0) {
         return;
     }
     
-    // Get current user name
     let userName = "Student";
     let userHandle = "@user";
     if (typeof CURRENT_USER !== 'undefined') {
@@ -150,7 +148,6 @@ function renderFeed() {
         userHandle = `@${CURRENT_USER.username || 'user'}`;
     }
     
-    // Render from JavaScript array
     feedContainer.innerHTML = posts.map((post, index) => `
         <div class="feed-card" data-post-id="${post.id || index}">
             <div class="feed-header">
@@ -198,7 +195,84 @@ function renderFeed() {
     `).join('');
 }
 
-// --- Toggle functions ---
+// --- Toggle Sidebar ---
+function toggleSidebar() {
+    const sidebar = document.getElementById('mainSidebar');
+    const toggleBtn = document.getElementById('sidebarToggleBtn');
+    sidebar.classList.toggle('collapsed');
+    const icon = toggleBtn.querySelector('i');
+    if (sidebar.classList.contains('collapsed')) {
+        icon.className = 'fas fa-chevron-right';
+    } else {
+        icon.className = 'fas fa-chevron-left';
+    }
+    localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+}
+
+function restoreSidebarState() {
+    const sidebar = document.getElementById('mainSidebar');
+    const toggleBtn = document.getElementById('sidebarToggleBtn');
+    const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    if (isCollapsed) {
+        sidebar.classList.add('collapsed');
+        toggleBtn.querySelector('i').className = 'fas fa-chevron-right';
+    }
+}
+
+// ==================== VIEW STATE MANAGEMENT ====================
+
+function switchView(viewId, element) {
+    console.log('🔄 switchView called for:', viewId);
+    
+    // Update active menu item
+    document.querySelectorAll('.menu a').forEach(link => link.classList.remove('active'));
+    if (element) {
+        element.classList.add('active');
+    }
+    
+    // Hide all views
+    document.querySelectorAll('.dashboard-view').forEach(view => {
+        view.classList.remove('active-view');
+        view.style.display = 'none';
+    });
+    
+    // Show selected view
+    const targetView = document.getElementById(viewId);
+    if (targetView) {
+        targetView.classList.add('active-view');
+        targetView.style.display = 'flex';
+    }
+    
+    // Save to localStorage
+    localStorage.setItem('currentView', viewId);
+    console.log('✅ View saved to localStorage:', viewId);
+}
+
+function restoreView() {
+    console.log('🔄 restoreView called');
+    const savedView = localStorage.getItem('currentView');
+    console.log('📌 Saved view from localStorage:', savedView);
+    
+    // If no saved view OR saved view is home, do nothing (home already showing)
+    if (!savedView || savedView === 'homeView') {
+        console.log('No saved view or already on home, keeping default');
+        return;
+    }
+    
+    // Find menu item with matching data-view
+    const menuItem = document.querySelector(`.menu a[data-view="${savedView}"]`);
+    console.log('🔍 Looking for menu item with data-view:', savedView);
+    console.log('🔍 Found menu item:', menuItem);
+    
+    if (menuItem) {
+        console.log('✅ Found menu item, switching to:', savedView);
+        switchView(savedView, menuItem);
+    } else {
+        console.log('❌ Menu item not found, staying on home');
+    }
+}
+
+// --- Comment Functions ---
 function toggleComments(index) {
     posts[index].showAllComments = !posts[index].showAllComments;
     renderFeed();
@@ -210,12 +284,10 @@ function handleComment(event, index) {
         const commentText = event.target.value.trim();
         if (commentText !== "") {
             if (!posts[index].comments) posts[index].comments = [];
-            
             let userName = "You";
             if (typeof CURRENT_USER !== 'undefined') {
                 userName = CURRENT_USER.full_name || CURRENT_USER.username || "You";
             }
-            
             posts[index].comments.push({ text: commentText, user: userName });
             event.target.value = "";
             renderFeed();
@@ -236,42 +308,28 @@ function toggleLike(index) {
     renderFeed();
 }
 
-// --- COMMENT FUNCTIONS FOR DJANGO POSTS (with postId) ---
-
-// Toggle comment box for Django posts
 function toggleCommentBoxById(postId) {
-    console.log("Toggle comment box for post:", postId);
     const section = document.getElementById(`comment-section-${postId}`);
     if (section) {
         if (section.style.display === 'none' || section.style.display === '') {
             section.style.display = 'block';
             const input = section.querySelector('.comment-input');
-            if (input) {
-                setTimeout(() => input.focus(), 100);
-            }
+            if (input) setTimeout(() => input.focus(), 100);
         } else {
             section.style.display = 'none';
         }
-    } else {
-        console.error("Comment section not found for post:", postId);
     }
 }
 
-// Handle comment submission for Django posts
 function handleCommentSubmit(event, postId) {
     if (event.key === 'Enter') {
         event.preventDefault();
         const input = event.target;
         const commentText = input.value.trim();
-        
         if (!commentText) {
             alert('Please enter a comment.');
             return;
         }
-        
-        console.log("Submitting comment for post:", postId);
-        
-        // Send comment to server
         fetch(`/post/${postId}/comment/`, {
             method: 'POST',
             headers: {
@@ -284,26 +342,14 @@ function handleCommentSubmit(event, postId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                console.log("Comment added successfully:", data);
-                
-                // Add comment to DOM
                 const commentsList = document.getElementById(`comments-${postId}`);
-                if (!commentsList) {
-                    console.error("Comments list not found for post:", postId);
-                    return;
-                }
-                
-                // Remove "No comments" message if it exists
+                if (!commentsList) return;
                 const noComments = commentsList.querySelector('.no-comments');
                 if (noComments) noComments.remove();
-                
-                // Get username from CURRENT_USER
                 let userName = "You";
                 if (typeof CURRENT_USER !== 'undefined') {
                     userName = CURRENT_USER.username || "You";
                 }
-                
-                // Create new comment HTML
                 const commentHtml = `
                     <div class="comment-item" data-comment-id="${data.comment.id}">
                         <strong>${userName}:</strong>
@@ -314,13 +360,9 @@ function handleCommentSubmit(event, postId) {
                         </button>
                     </div>
                 `;
-                
                 commentsList.insertAdjacentHTML('beforeend', commentHtml);
                 input.value = '';
-                
-                // Update comment count
                 updateCommentCount(postId, 1);
-                
                 if (typeof showToast === 'function') {
                     showToast('Comment added successfully');
                 }
@@ -335,7 +377,6 @@ function handleCommentSubmit(event, postId) {
     }
 }
 
-// Update comment count
 function updateCommentCount(postId, change) {
     const commentSpan = document.querySelector(`.feed-actions span[data-post-id="${postId}"]:last-child`);
     if (commentSpan) {
@@ -347,44 +388,32 @@ function updateCommentCount(postId, change) {
     }
 }
 
-// --- Override toggleCommentBox for compatibility ---
-// This handles both index and postId
 function toggleCommentBox(param) {
-    // If param is a number and it's a post ID (not an index)
     if (typeof param === 'number') {
-        // Check if this is a post ID by looking for the comment section
         const section = document.getElementById(`comment-section-${param}`);
         if (section) {
-            // This is a post ID, use the byId version
             toggleCommentBoxById(param);
             return;
         }
     }
-    
-    // Otherwise treat it as an index (for local posts)
     if (posts[param]) {
         posts[param].showComments = !posts[param].showComments;
         renderFeed();
     }
 }
 
-// --- Add New Post ---
 function addNewPost() {
     const text = document.getElementById('postInput').value.trim();
     if (!text) {
         alert('Please enter some content.');
         return;
     }
-    
-    // Use actual user data from global CURRENT_USER
     let userName = "Student";
     let userHandle = "@user";
     if (typeof CURRENT_USER !== 'undefined') {
         userName = CURRENT_USER.full_name || CURRENT_USER.username || "Student";
         userHandle = `@${CURRENT_USER.username || 'user'}`;
     }
-    
-    // Send to Django backend
     fetch('/post/create/', {
         method: 'POST',
         headers: {
@@ -399,11 +428,9 @@ function addNewPost() {
         if (data.success) {
             document.getElementById('postInput').value = '';
             showToast('Post created successfully!');
-            // Reload to show new post from Django
             setTimeout(() => location.reload(), 500);
         } else {
             alert(data.error || 'Failed to create post');
-            // Fallback: add locally
             posts.unshift({ 
                 id: Date.now().toString(),
                 name: userName,
@@ -423,7 +450,6 @@ function addNewPost() {
     })
     .catch(error => {
         console.error('Error:', error);
-        // Fallback: add locally
         posts.unshift({ 
             id: Date.now().toString(),
             name: userName,
@@ -443,13 +469,8 @@ function addNewPost() {
     });
 }
 
-// --- Delete Post ---
 function deletePost(postId) {
-    if (!postId) {
-        console.error('No post ID provided');
-        return;
-    }
-    
+    if (!postId) return;
     if (confirm('Are you sure you want to delete this post?')) {
         fetch(`/post/${postId}/delete/`, {
             method: 'POST',
@@ -477,7 +498,6 @@ function deletePost(postId) {
     }
 }
 
-// --- Delete Local Post ---
 function deleteLocalPost(index) {
     if (confirm('Are you sure you want to delete this post?')) {
         posts.splice(index, 1);
@@ -485,13 +505,8 @@ function deleteLocalPost(index) {
     }
 }
 
-// --- Delete Comment ---
 function deleteComment(commentId, postId) {
-    if (!commentId) {
-        console.error('No comment ID provided');
-        return;
-    }
-    
+    if (!commentId) return;
     if (confirm('Are you sure you want to delete this comment?')) {
         fetch(`/comment/${commentId}/delete/`, {
             method: 'POST',
@@ -520,18 +535,13 @@ function deleteComment(commentId, postId) {
     }
 }
 
-// --- Toggle Like Post ---
 function toggleLikePost(postId) {
     if (!postId) return;
-    
     const likeSpan = document.querySelector(`.feed-actions span[data-post-id="${postId}"]`);
     if (!likeSpan) return;
-    
     const icon = likeSpan.querySelector('i');
     const countSpan = likeSpan.querySelector('.like-count');
     const isCurrentlyLiked = likeSpan.classList.contains('liked');
-    
-    // Optimistic update
     if (isCurrentlyLiked) {
         likeSpan.classList.remove('liked');
         icon.className = 'far fa-heart';
@@ -543,7 +553,6 @@ function toggleLikePost(postId) {
         icon.style.color = '#ef4444';
         if (countSpan) countSpan.textContent = parseInt(countSpan.textContent) + 1;
     }
-    
     fetch(`/post/${postId}/like/`, {
         method: 'POST',
         headers: {
@@ -565,7 +574,6 @@ function toggleLikePost(postId) {
                 icon.style.color = '';
             }
         } else {
-            // Revert on error
             if (isCurrentlyLiked) {
                 likeSpan.classList.add('liked');
                 icon.className = 'fas fa-heart';
@@ -582,7 +590,6 @@ function toggleLikePost(postId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        // Revert on error
         if (isCurrentlyLiked) {
             likeSpan.classList.add('liked');
             icon.className = 'fas fa-heart';
@@ -597,30 +604,13 @@ function toggleLikePost(postId) {
     });
 }
 
-// --- Assignment Logic (Simple Task Management) ---
-function switchView(viewId, element) {
-    document.querySelectorAll('.menu a').forEach(link => link.classList.remove('active'));
-    if (element) element.classList.add('active');
-    document.querySelectorAll('.dashboard-view').forEach(view => {
-        view.classList.remove('active-view');
-        view.style.display = 'none';
-    });
-    const targetView = document.getElementById(viewId);
-    if (targetView) {
-        targetView.classList.add('active-view');
-        targetView.style.display = 'flex';
-    }
-}
-
 function renderTasks() {
     const container = document.getElementById('assignmentList');
     if(!container) return;
-    
     if (tasks.length === 0) {
         container.innerHTML = '<p class="empty-feed">No assignments yet. Add one above!</p>';
         return;
     }
-    
     container.innerHTML = tasks.map(task => `
         <div class="assignment-card">
             <div class="status-dot"></div>
@@ -669,7 +659,6 @@ function saveTask() {
     showToast('Assignment added successfully');
 }
 
-// --- Post Modal ---
 function openPostModal() {
     document.getElementById('postModalOverlay').style.display = 'flex';
 }
@@ -685,7 +674,6 @@ function savePost() {
         alert('Please enter some content');
         return;
     }
-    
     fetch('/post/create/', {
         method: 'POST',
         headers: {
@@ -709,15 +697,4 @@ function savePost() {
         console.error('Error:', error);
         alert('An error occurred');
     });
-}
-
-// --- Initialize ---
-document.addEventListener('DOMContentLoaded', function() {
-    init();
-});
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
 }

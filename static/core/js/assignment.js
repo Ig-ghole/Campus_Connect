@@ -53,7 +53,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// --- Render Assignments ---
+
 // --- Render Assignments ---
 function renderAssignments() {
     const container = document.getElementById('assignmentList');

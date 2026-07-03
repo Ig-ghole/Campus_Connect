@@ -36,7 +36,7 @@ function getNotificationIcon(type) {
         'like': 'fas fa-heart',
         'comment': 'fas fa-comment',
         'announcement': 'fas fa-bullhorn',
-        //'assignment': 'fas fa-tasks'
+        'assignment': 'fas fa-tasks'
     };
     return icons[type] || 'fas fa-bell';
 }
@@ -47,7 +47,7 @@ function getNotificationLabel(type) {
         'like': '❤️ Liked your post',
         'comment': '💬 Commented on your post',
         'announcement': '📢 New Announcement',
-        //'assignment': '📚 New Assignment'
+        'assignment': '📚 New Assignment'
     };
     return labels[type] || 'Notification';
 }

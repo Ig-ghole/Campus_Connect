@@ -14,6 +14,8 @@ class Profile(models.Model):
     bio = models.TextField(blank=True, max_length=500)
     department = models.CharField(max_length=100, blank=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='student')
+    section = models.CharField(max_length=10, blank=True, null=True)  # A, B, C, D
+    batch = models.CharField(max_length=10, blank=True, null=True)  
     profile_image = models.ImageField(upload_to='profile_images/', default='default.jpg', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -95,12 +97,12 @@ class Assignment(models.Model):
 ]
     
     DEPARTMENT_CHOICES = [
-        ('computer', 'Computer Science'),
-        ('civil', 'Civil Engineering'),
-        ('architecture', 'Architecture'),
-        ('electronics', 'Electronics Engineering'),
-        ('mechanical', 'Mechanical Engineering'),
-        ('electrical', 'Electrical Engineering'),
+        ('computer', 'BE Computer'),
+        ('civil', 'BE Civil'),
+        ('architecture', 'BE Architecture'),
+        ('electronics', 'BE Electronics'),
+        ('mechanical', 'BE IT'),
+        ('electrical', 'BE Electrical'),
         ('general', 'General'),
     ]
     
@@ -131,7 +133,7 @@ class Notification(models.Model):
         ('like', 'Like'),
         ('comment', 'Comment'),
         ('announcement', 'Announcement'),
-        #('assignment', 'Assignment'),
+        ('assignment', 'Assignment'),
         
     ]
     

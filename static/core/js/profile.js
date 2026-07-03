@@ -5,6 +5,7 @@ let userPosts = [];
 let showComments = {};
 
 // --- Render User Profile ---
+
 function renderUserProfile() {
     let user = null;
     
@@ -12,7 +13,10 @@ function renderUserProfile() {
         user = {
             name: CURRENT_USER.username || "User",
             username: CURRENT_USER.username || "user",
+            role: CURRENT_USER.role || "student",
             department: CURRENT_USER.department || "Not specified",
+            section: CURRENT_USER.section || "",
+            batch: CURRENT_USER.batch || "",
             bio: CURRENT_USER.bio || "No bio added yet.",
             email: CURRENT_USER.email || ""
         };
@@ -30,7 +34,10 @@ function renderUserProfile() {
         user = {
             name: "User",
             username: "user",
+            role: "student",
             department: "Not specified",
+            section: "",
+            batch: "",
             bio: "No bio added yet.",
             email: ""
         };
@@ -46,6 +53,29 @@ function renderUserProfile() {
     const deptEl = document.getElementById('profileDept');
     if (deptEl) deptEl.textContent = user.department;
     
+    // ✅ ONLY SHOW SECTION & BATCH FOR STUDENTS
+    const sectionEl = document.getElementById('profileSection');
+    const batchEl = document.getElementById('profileBatch');
+    
+    if (user.role === 'student') {
+        if (sectionEl) {
+            sectionEl.textContent = user.section || 'Not specified';
+            sectionEl.closest('span').style.display = 'inline';
+        }
+        if (batchEl) {
+            batchEl.textContent = user.batch || 'Not specified';
+            batchEl.closest('span').style.display = 'inline';
+        }
+    } else {
+        // Hide for teachers and admins
+        if (sectionEl) {
+            sectionEl.closest('span').style.display = 'none';
+        }
+        if (batchEl) {
+            batchEl.closest('span').style.display = 'none';
+        }
+    }
+    
     const bioEl = document.getElementById('profileBio');
     if (bioEl) bioEl.textContent = user.bio;
     
@@ -58,7 +88,6 @@ function renderUserProfile() {
     const sidebarAvatar = document.querySelector('.user-card .user-avatar-small');
     if (sidebarAvatar) sidebarAvatar.textContent = user.name.charAt(0).toUpperCase();
     
-    // ✅ Load user's posts on profile
     loadUserPosts();
 }
 
@@ -96,7 +125,6 @@ function loadUserPosts() {
     });
 }
 
-// --- Render User Posts ---
 // --- Render User Posts ---
 function renderUserPosts() {
     const container = document.getElementById('userPostsContainer');
@@ -373,14 +401,8 @@ function openEditProfileModal() {
     
     document.getElementById('editName').value = user.name || '';
     document.getElementById('editDept').value = user.department || '';
-    document.getElementById('editBio').value = user.bio || '';
-    
+    document.getElementById('editBio').value = user.bio || '';  
     document.getElementById('editProfileModal').style.display = 'flex';
-}
-
-// --- Close Edit Profile Modal ---
-function closeEditProfileModal() {
-    document.getElementById('editProfileModal').style.display = 'none';
 }
 
 // --- Save User Profile ---
