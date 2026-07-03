@@ -93,21 +93,26 @@ def login_view(request):
         email = request.POST.get('loginEmail', '').strip()
         password = request.POST.get('loginPass', '')
         
-        try:
-            user_obj = User.objects.get(email=email)
-            user = authenticate(request, username=user_obj.username, password=password)
-            
-            if user is not None:
-                auth_login(request, user)
-                return redirect('/')
-            else:
-                messages.error(request, 'Invalid email or password')
-        except User.DoesNotExist:
+        # ✅ Get first user with this email
+        user_obj = User.objects.filter(email=email).first()
+        
+        if user_obj is None:
+            messages.error(request, 'Invalid email or password')
+            return render(request, 'core/login.html')
+        
+        user = authenticate(request, username=user_obj.username, password=password)
+        
+        if user is not None:
+            auth_login(request, user)
+            return redirect('/')
+        else:
             messages.error(request, 'Invalid email or password')
         
         return render(request, 'core/login.html')
     
     return render(request, 'core/login.html')
+
+
 
 @login_required
 def logout_view(request):
