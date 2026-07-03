@@ -149,3 +149,4 @@ EMAIL_HOST_PASSWORD = os.environ.get('zkkn bels ptzo urdu')
 DEFAULT_FROM_EMAIL = 'noreply@nec.edu.np' 
 
 EMAIL_TIMEOUT = 10
+print(f"📧 Email configured with: {EMAIL_HOST_USER}")
