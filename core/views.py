@@ -782,60 +782,26 @@ def send_otp(request):
     if request.method == 'POST':
         email = request.POST.get('email', '').strip()
         
-        print(f"📧 Sending OTP to: {email}")
-        
-        # Check if email ends with @nec.edu.np
         if not email.endswith('@nec.edu.np'):
             return JsonResponse({'success': False, 'error': 'Only @nec.edu.np emails are allowed'})
         
-        # Check if email already registered
         if User.objects.filter(email=email).exists():
             return JsonResponse({'success': False, 'error': 'Email already registered'})
         
-        # Delete old OTPs
         OTP.objects.filter(email=email).delete()
         
-        # Generate new OTP
         otp_code = generate_otp()
         OTP.objects.create(email=email, otp_code=otp_code)
         
-        # ✅ Send professional email from @nec.edu.np
-        try:
-            send_mail(
-                subject='🔐 Campus Connect - OTP Verification',
-                message=f'''
-Dear Student,
-
-Your One-Time Password (OTP) for Campus Connect registration is:
-
-🔑 {otp_code}
-
-This OTP is valid for 10 minutes.
-
-If you did not request this, please ignore this email.
-
-Best regards,
-Campus Connect Team
-Nepal Engineering College
-''',
-                from_email=settings.DEFAULT_FROM_EMAIL,  # noreply@nec.edu.np
-                recipient_list=[email],
-                fail_silently=False,
-            )
-            
-            # ✅ Print to terminal (for debugging)
-            print(f"\n{'='*50}")
-            print(f"🔐 OTP FOR {email}: {otp_code}")
-            print(f"{'='*50}\n")
-    
-            print(f"✅ OTP email sent to {email}")
-        except Exception as e:
-            print(f"❌ Error sending email: {e}")
-            return JsonResponse({'success': False, 'error': 'Failed to send OTP email. Please try again.'})
+        # ✅ Print OTP to logs
+        print(f"\n{'='*50}")
+        print(f"🔐 OTP FOR {email}: {otp_code}")
+        print(f"{'='*50}\n")
         
         return JsonResponse({
             'success': True,
-            'message': 'OTP sent to your email'
+            'message': 'OTP sent! Check Render logs for code.',
+            'otp': otp_code  # For debugging
         })
     
     return JsonResponse({'success': False, 'error': 'Invalid request'})
