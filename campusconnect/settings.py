@@ -26,9 +26,14 @@ SECRET_KEY = 'django-insecure-s%_k_*m-jit&suj$-mf!8lb^y(p5sp+89&j0!y&1mus%tj9&=c
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG =True
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
-# ✅ Add Render URL
-ALLOWED_HOSTS.append('.onrender.com')
+
+
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    'campus-connect-4-eboy.onrender.com',
+    'campus-connect-3-xc23.onrender.com'
+]
 
 # Application definition
 
