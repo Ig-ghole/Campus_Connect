@@ -122,7 +122,10 @@ USE_TZ = True
 STATIC_URL = 'static/'
 # ✅ Fixed: STATIC_ROOT (not STATIC_ROOTS)
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),      # For project-level static
+    os.path.join(BASE_DIR, 'core/static'), # For app-level static
+]
 
 # ✅ Use whitenoise for static files
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
