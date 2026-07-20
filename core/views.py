@@ -768,11 +768,11 @@ def get_user_posts(request):
 
 # ==================== OTP VIEWS ====================
 
-import random
 from django.core.mail import send_mail
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
-from .models import OTP
+from django.http import JsonResponse
+import random
 
 def generate_otp():
     return str(random.randint(100000, 999999))
@@ -780,29 +780,67 @@ def generate_otp():
 @csrf_exempt
 def send_otp(request):
     if request.method == 'POST':
-        email = request.POST.get('email', '').strip()
-        
-        if not email.endswith('@nec.edu.np'):
-            return JsonResponse({'success': False, 'error': 'Only @nec.edu.np emails are allowed'})
-        
-        if User.objects.filter(email=email).exists():
-            return JsonResponse({'success': False, 'error': 'Email already registered'})
-        
-        OTP.objects.filter(email=email).delete()
-        
-        otp_code = generate_otp()
-        OTP.objects.create(email=email, otp_code=otp_code)
-        
-        # ✅ Print OTP to logs
-        print(f"\n{'='*50}")
-        print(f"🔐 OTP FOR {email}: {otp_code}")
-        print(f"{'='*50}\n")
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'OTP sent! Check Render logs for code.',
-            'otp': otp_code  # For debugging
-        })
+        try:
+            email = request.POST.get('email', '').strip()
+            
+            print(f"📧 Sending OTP to: {email}")
+            
+            if not email.endswith('@nec.edu.np'):
+                return JsonResponse({'success': False, 'error': 'Only @nec.edu.np emails are allowed'})
+            
+            if User.objects.filter(email=email).exists():
+                return JsonResponse({'success': False, 'error': 'Email already registered'})
+            
+            OTP.objects.filter(email=email).delete()
+            
+            otp_code = generate_otp()
+            OTP.objects.create(email=email, otp_code=otp_code)
+            
+            # Print to console for debugging
+            print(f"\n{'='*50}")
+            print(f"🔐 OTP FOR {email}: {otp_code}")
+            print(f"{'='*50}\n")
+            
+            # ✅ Send email via Brevo
+            try:
+                send_mail(
+                    subject='🔐 Campus Connect - OTP Verification',
+                    message=f'''
+Dear Student,
+
+Your One-Time Password (OTP) for Campus Connect registration is:
+
+🔑 {otp_code}
+
+This OTP is valid for 10 minutes.
+
+If you did not request this, please ignore this email.
+
+Best regards,
+Campus Connect Team
+Nepal Engineering College
+''',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[email],
+                    fail_silently=False,
+                )
+                print(f"✅ OTP email sent to {email}")
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': 'OTP sent to your email!',
+                })
+                
+            except Exception as e:
+                print(f"❌ Email error: {e}")
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Failed to send OTP email. Please try again.'
+                })
+                
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            return JsonResponse({'success': False, 'error': str(e)})
     
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
