@@ -123,11 +123,18 @@ LOGOUT_REDIRECT_URL = 'login'
 # ✅ Use console backend for Render (OTP appears in logs)
 #EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# ✅ SendGrid (Works on Render)
+# ==================== EMAIL CONFIGURATION ====================
+
+# ✅ Brevo SMTP (Free forever, 300 emails/day)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.sendgrid.net'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'apikey'
-EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY')
+EMAIL_HOST = 'smtp-relay.brevo.com'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_USE_TLS = False
+EMAIL_HOST_USER = 'b2a581001@smtp-brevo.com'  # ✅ Your Brevo login
+EMAIL_HOST_PASSWORD ='bsk2vSQxvOM17ZO'     # ✅ Your SMTP key (click "Show" to see it)
 DEFAULT_FROM_EMAIL = 'noreply@nec.edu.np'
+EMAIL_TIMEOUT = 10
+
+print(f"📧 Email configured with Brevo: {EMAIL_HOST_USER}")
+print(f"SMTP Password set: {'Yes' if EMAIL_HOST_PASSWORD else 'No'}")
