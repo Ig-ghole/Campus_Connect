@@ -819,23 +819,10 @@ def send_otp(request):
                     })
                 
                 response = resend.Emails.send({
-                    "from": "onboarding@resend.dev",  # ✅ Free default sender
-                    "to": email,
+                    "from": "Campus Connect <otp@campusconnect.site>",
+                    "to": [email],
                     "subject": "🔐 Campus Connect - OTP Verification",
-                    "html": f"""
-                        <html>
-                            <body style="font-family: Arial, sans-serif;">
-                                <h2 style="color: #7c3aed;">🔐 Campus Connect - OTP Verification</h2>
-                                <p>Dear Student,</p>
-                                <p>Your One-Time Password (OTP) for Campus Connect registration is:</p>
-                                <h1 style="color: #7c3aed; font-size: 36px; letter-spacing: 4px; background: #f5f3ff; padding: 15px; border-radius: 8px; display: inline-block;">{otp_code}</h1>
-                                <p>This OTP is valid for <strong>10 minutes</strong>.</p>
-                                <p>If you did not request this, please ignore this email.</p>
-                                <br>
-                                <p>Best regards,<br><strong>Campus Connect Team</strong><br>Nepal Engineering College</p>
-                            </body>
-                        </html>
-                    """
+                    "html": f"<h1>Your OTP is {otp_code}</h1>"
                 })
                 
                 print(f"✅ OTP email sent to {email} via Resend")
