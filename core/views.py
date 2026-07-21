@@ -783,95 +783,68 @@ def generate_otp():
     return str(random.randint(100000, 999999))
 
 
-def send_otp_via_brevo(to_email, otp_code):
-    """Sends OTP email via Brevo HTTP API (Port 443 - Bypasses Render Port Blocks)"""
-    url = "https://api.brevo.com/v3/smtp/email"
-
-    # Fetch API key from settings or environment
-    api_key = getattr(
-        settings, "BREVO_API_KEY", os.environ.get("BREVO_API_KEY")
-    )
-
-    if not api_key:
-        print("❌ BREVO_API_KEY is missing!")
-        return False, "BREVO_API_KEY missing on server"
-
-    headers = {
-        "accept": "application/json",
-        "api-key": api_key,
-        "content-type": "application/json",
-    }
-
-    payload = {
-        "sender": {
-            "name": getattr(settings, "BREVO_SENDER_NAME", "Campus Connect"),
-            "email": getattr(
-                settings, "BREVO_SENDER_EMAIL", "campusconnect2006@gmail.com"
-            ),
-        },
-        "to": [{"email": to_email}],
-        "subject": "🔐 Campus Connect - OTP Verification",
-        "htmlContent": f"<h1>Your OTP is {otp_code}</h1>",
-    }
-
-    try:
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            url, data=data, headers=headers, method="POST"
-        )
-
-        with urllib.request.urlopen(req) as response:
-            print(f"✅ Brevo response status: {response.status}")
-            return True, "OTP sent successfully!"
-
-    except urllib.error.HTTPError as e:
-        error_msg = e.read().decode("utf-8")
-        print(f"❌ Brevo API error ({e.code}): {error_msg}")
-        return False, f"Brevo error ({e.code}): {error_msg}"
-    except Exception as e:
-        print(f"❌ Unexpected error in send_otp_via_brevo: {repr(e)}")
-        return False, str(e)
-
-
 @csrf_exempt
 def send_otp(request):
-    if request.method == "POST":
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip()
+        
+        print(f"📧 Sending OTP to: {email}")
+        
+        # Check if email ends with @nec.edu.np
+        if not email.endswith('@nec.edu.np'):
+            return JsonResponse({'success': False, 'error': 'Only @nec.edu.np emails are allowed'})
+        
+        # Check if email already registered
+        if User.objects.filter(email=email).exists():
+            return JsonResponse({'success': False, 'error': 'Email already registered'})
+        
+        # Delete old OTPs
+        OTP.objects.filter(email=email).delete()
+        
+        # Generate new OTP
+        otp_code = generate_otp()
+        OTP.objects.create(email=email, otp_code=otp_code)
+        
+        # ✅ Send professional email from @nec.edu.np
         try:
-            email = request.POST.get("email", "").strip()
+            send_mail(
+                subject='🔐 Campus Connect - OTP Verification',
+                message=f'''
+Dear Student,
 
-            if not email.endswith("@nec.edu.np"):
-                return JsonResponse(
-                    {
-                        "success": False,
-                        "error": "Only @nec.edu.np emails are allowed",
-                    }
-                )
+Your One-Time Password (OTP) for Campus Connect registration is:
 
-            if User.objects.filter(email=email).exists():
-                return JsonResponse(
-                    {"success": False, "error": "Email already registered"}
-                )
+🔑 {otp_code}
 
-            # Store OTP in DB
-            OTP.objects.filter(email=email).delete()
-            otp_code = generate_otp()
-            OTP.objects.create(email=email, otp_code=otp_code)
+This OTP is valid for 10 minutes.
 
-            # Send Email via Brevo HTTP API
-            success, message = send_otp_via_brevo(email, otp_code)
+If you did not request this, please ignore this email.
 
-            if success:
-                return JsonResponse({"success": True, "message": message})
-            else:
-                return JsonResponse(
-                    {"success": False, "error": f"Email failed: {message}"}
-                )
-
+Best regards,
+Campus Connect Team
+Nepal Engineering College
+''',
+                from_email=settings.DEFAULT_FROM_EMAIL,  # noreply@nec.edu.np
+                recipient_list=[email],
+                fail_silently=False,
+            )
+            
+            # ✅ Print to terminal (for debugging)
+            print(f"\n{'='*50}")
+            print(f"🔐 OTP FOR {email}: {otp_code}")
+            print(f"{'='*50}\n")
+    
+            print(f"✅ OTP email sent to {email}")
         except Exception as e:
-            print(f"❌ General error in send_otp: {e}")
-            return JsonResponse({"success": False, "error": str(e)})
-
-    return JsonResponse({"success": False, "error": "Invalid request"})
+            print(f"❌ Error sending email: {e}")
+            return JsonResponse({'success': False, 'error': 'Failed to send OTP email. Please try again.'})
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'OTP sent to your email'
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
 
 
 @csrf_exempt

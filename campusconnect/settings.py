@@ -142,11 +142,12 @@ LOGOUT_REDIRECT_URL = 'login'
 #DEFAULT_FROM_EMAIL = 'Campus Connect <otp@campusconnect.site>'
 #print(f"📧 Email configured with Brevo: {EMAIL_HOST_USER}")
 #print(f"SMTP Password set: {'Yes' if EMAIL_HOST_PASSWORD else 'No'}")
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
 
-# ==================== EMAIL CONFIGURATION (BREVO HTTP API) ====================
-# Brevo API Key (Best practice: store in environment variable or paste directly here for now)
-BREVO_API_KEY = os.environ.get('BREVO_API_KEY', 'xkeysib-YOUR_ACTUAL_BREVO_API_KEY_HERE')
+EMAIL_HOST_USER = 'campusconnect2006@gmail.com'
+EMAIL_HOST_PASSWORD = 'zkknbelsptzourdu'
 
-# Sender configuration MUST use your Brevo account email until domain is verified
-BREVO_SENDER_EMAIL = 'campusconnect2006@gmail.com'
-BREVO_SENDER_NAME = 'Campus Connect'
+DEFAULT_FROM_EMAIL = 'Campus Connect <campusconnect2006@gmail.com>'
