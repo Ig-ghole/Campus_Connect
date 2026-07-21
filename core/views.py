@@ -767,15 +767,21 @@ def get_user_posts(request):
 
 
 # ==================== OTP VIEWS ====================
-
+import os
+from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import random
+import resend
+import os
+from django.conf import settings
 
 def generate_otp():
     return str(random.randint(100000, 999999))
+
+
 
 @csrf_exempt
 def send_otp(request):
@@ -796,43 +802,50 @@ def send_otp(request):
             otp_code = generate_otp()
             OTP.objects.create(email=email, otp_code=otp_code)
             
-            # Print to console for debugging
+            # Print to console
             print(f"\n{'='*50}")
             print(f"🔐 OTP FOR {email}: {otp_code}")
             print(f"{'='*50}\n")
             
-            # ✅ Send email via Brevo
+            # ✅ Send email via Resend
             try:
-                send_mail(
-                    subject='🔐 Campus Connect - OTP Verification',
-                    message=f'''
-Dear Student,
-
-Your One-Time Password (OTP) for Campus Connect registration is:
-
-🔑 {otp_code}
-
-This OTP is valid for 10 minutes.
-
-If you did not request this, please ignore this email.
-
-Best regards,
-Campus Connect Team
-Nepal Engineering College
-''',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[email],
-                    fail_silently=False,
-                )
-                print(f"✅ OTP email sent to {email}")
+                resend.api_key = os.environ.get('RESEND_API_KEY')
                 
+                if not resend.api_key:
+                    print("❌ RESEND_API_KEY not set")
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Email configuration error'
+                    })
+                
+                response = resend.Emails.send({
+                    "from": "onboarding@resend.dev",  # ✅ Free default sender
+                    "to": email,
+                    "subject": "🔐 Campus Connect - OTP Verification",
+                    "html": f"""
+                        <html>
+                            <body style="font-family: Arial, sans-serif;">
+                                <h2 style="color: #7c3aed;">🔐 Campus Connect - OTP Verification</h2>
+                                <p>Dear Student,</p>
+                                <p>Your One-Time Password (OTP) for Campus Connect registration is:</p>
+                                <h1 style="color: #7c3aed; font-size: 36px; letter-spacing: 4px; background: #f5f3ff; padding: 15px; border-radius: 8px; display: inline-block;">{otp_code}</h1>
+                                <p>This OTP is valid for <strong>10 minutes</strong>.</p>
+                                <p>If you did not request this, please ignore this email.</p>
+                                <br>
+                                <p>Best regards,<br><strong>Campus Connect Team</strong><br>Nepal Engineering College</p>
+                            </body>
+                        </html>
+                    """
+                })
+                
+                print(f"✅ OTP email sent to {email} via Resend")
                 return JsonResponse({
                     'success': True,
                     'message': 'OTP sent to your email!',
                 })
                 
             except Exception as e:
-                print(f"❌ Email error: {e}")
+                print(f"❌ Resend error: {e}")
                 return JsonResponse({
                     'success': False,
                     'error': 'Failed to send OTP email. Please try again.'
@@ -843,6 +856,8 @@ Nepal Engineering College
             return JsonResponse({'success': False, 'error': str(e)})
     
     return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+
 
 @csrf_exempt
 def verify_otp(request):
