@@ -5,6 +5,8 @@ Django settings for campusconnect project.
 import os
 from pathlib import Path
 
+import resend
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -12,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-s%_k_*m-jit&suj$-mf!8lb^y(p5sp+89&j0!y&1mus%tj9&=c'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = [
     '127.0.0.1',
@@ -136,7 +138,15 @@ LOGOUT_REDIRECT_URL = 'login'
 #DEFAULT_FROM_EMAIL = 'noreply@nec.edu.np'
 #EMAIL_TIMEOUT = 30
 
-RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
-DEFAULT_FROM_EMAIL = 'Campus Connect <otp@campusconnect.site>'
+#resend.api_key = os.environ.get('RESEND_API_KEY')
+#DEFAULT_FROM_EMAIL = 'Campus Connect <otp@campusconnect.site>'
 #print(f"📧 Email configured with Brevo: {EMAIL_HOST_USER}")
 #print(f"SMTP Password set: {'Yes' if EMAIL_HOST_PASSWORD else 'No'}")
+
+# ==================== EMAIL CONFIGURATION (BREVO HTTP API) ====================
+# Brevo API Key (Best practice: store in environment variable or paste directly here for now)
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', 'xkeysib-YOUR_ACTUAL_BREVO_API_KEY_HERE')
+
+# Sender configuration MUST use your Brevo account email until domain is verified
+BREVO_SENDER_EMAIL = 'campusconnect2006@gmail.com'
+BREVO_SENDER_NAME = 'Campus Connect'

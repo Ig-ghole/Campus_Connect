@@ -767,111 +767,150 @@ def get_user_posts(request):
 
 
 # ==================== OTP VIEWS ====================
+import json
 import os
-from django.contrib.auth.models import User
-from django.core.mail import send_mail
-from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
 import random
-import resend
-import os
+import urllib.request
 from django.conf import settings
+from django.contrib.auth.models import User
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+from .models import OTP  # Ensure your OTP model is imported
+
 
 def generate_otp():
     return str(random.randint(100000, 999999))
 
 
+def send_otp_via_brevo(to_email, otp_code):
+    """Sends OTP email via Brevo HTTP API (Port 443 - Bypasses Render Port Blocks)"""
+    url = "https://api.brevo.com/v3/smtp/email"
+
+    # Fetch API key from settings or environment
+    api_key = getattr(
+        settings, "BREVO_API_KEY", os.environ.get("BREVO_API_KEY")
+    )
+
+    if not api_key:
+        print("❌ BREVO_API_KEY is missing!")
+        return False, "BREVO_API_KEY missing on server"
+
+    headers = {
+        "accept": "application/json",
+        "api-key": api_key,
+        "content-type": "application/json",
+    }
+
+    payload = {
+        "sender": {
+            "name": getattr(settings, "BREVO_SENDER_NAME", "Campus Connect"),
+            "email": getattr(
+                settings, "BREVO_SENDER_EMAIL", "campusconnect2006@gmail.com"
+            ),
+        },
+        "to": [{"email": to_email}],
+        "subject": "🔐 Campus Connect - OTP Verification",
+        "htmlContent": f"<h1>Your OTP is {otp_code}</h1>",
+    }
+
+    try:
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url, data=data, headers=headers, method="POST"
+        )
+
+        with urllib.request.urlopen(req) as response:
+            print(f"✅ Brevo response status: {response.status}")
+            return True, "OTP sent successfully!"
+
+    except urllib.error.HTTPError as e:
+        error_msg = e.read().decode("utf-8")
+        print(f"❌ Brevo API error ({e.code}): {error_msg}")
+        return False, f"Brevo error ({e.code}): {error_msg}"
+    except Exception as e:
+        print(f"❌ Unexpected error in send_otp_via_brevo: {repr(e)}")
+        return False, str(e)
+
 
 @csrf_exempt
 def send_otp(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
-            email = request.POST.get('email', '').strip()
-            
-            print(f"📧 Sending OTP to: {email}")
-            
-            if not email.endswith('@nec.edu.np'):
-                return JsonResponse({'success': False, 'error': 'Only @nec.edu.np emails are allowed'})
-            
+            email = request.POST.get("email", "").strip()
+
+            if not email.endswith("@nec.edu.np"):
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": "Only @nec.edu.np emails are allowed",
+                    }
+                )
+
             if User.objects.filter(email=email).exists():
-                return JsonResponse({'success': False, 'error': 'Email already registered'})
-            
+                return JsonResponse(
+                    {"success": False, "error": "Email already registered"}
+                )
+
+            # Store OTP in DB
             OTP.objects.filter(email=email).delete()
-            
             otp_code = generate_otp()
             OTP.objects.create(email=email, otp_code=otp_code)
-            
-            # Print to console
-            print(f"\n{'='*50}")
-            print(f"🔐 OTP FOR {email}: {otp_code}")
-            print(f"{'='*50}\n")
-            
-            # ✅ Send email via Resend
-            try:
-                resend.api_key = os.environ.get('RESEND_API_KEY')
-                
-                if not resend.api_key:
-                    print("❌ RESEND_API_KEY not set")
-                    return JsonResponse({
-                        'success': False,
-                        'error': 'Email configuration error'
-                    })
-                
-                response = resend.Emails.send({
-                    "from": "Campus Connect <otp@campusconnect.site>",
-                    "to": [email],
-                    "subject": "🔐 Campus Connect - OTP Verification",
-                    "html": f"<h1>Your OTP is {otp_code}</h1>"
-                })
-                
-                print(f"✅ OTP email sent to {email} via Resend")
-                return JsonResponse({
-                    'success': True,
-                    'message': 'OTP sent to your email!',
-                })
-                
-            except Exception as e:
-                print(f"❌ Resend error: {e}")
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Failed to send OTP email. Please try again.'
-                })
-                
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            return JsonResponse({'success': False, 'error': str(e)})
-    
-    return JsonResponse({'success': False, 'error': 'Invalid request'})
 
+            # Send Email via Brevo HTTP API
+            success, message = send_otp_via_brevo(email, otp_code)
+
+            if success:
+                return JsonResponse({"success": True, "message": message})
+            else:
+                return JsonResponse(
+                    {"success": False, "error": f"Email failed: {message}"}
+                )
+
+        except Exception as e:
+            print(f"❌ General error in send_otp: {e}")
+            return JsonResponse({"success": False, "error": str(e)})
+
+    return JsonResponse({"success": False, "error": "Invalid request"})
 
 
 @csrf_exempt
 def verify_otp(request):
-    if request.method == 'POST':
-        email = request.POST.get('email', '').strip()
-        otp_code = request.POST.get('otp', '').strip()
-        
+    if request.method == "POST":
+        email = request.POST.get("email", "").strip()
+        otp_code = request.POST.get("otp", "").strip()
+
         print(f"🔍 Verifying OTP for {email}: {otp_code}")
-        
+
         try:
-            otp = OTP.objects.get(email=email, otp_code=otp_code, is_used=False)
-            
+            otp = OTP.objects.get(
+                email=email, otp_code=otp_code, is_used=False
+            )
+
             if otp.is_expired():
-                return JsonResponse({'success': False, 'error': 'OTP has expired. Please request a new one.'})
-            
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": "OTP has expired. Please request a new one.",
+                    }
+                )
+
             otp.is_used = True
             otp.save()
-            
-            # ✅ Store verification in session
-            request.session['otp_verified'] = True
-            request.session['otp_email'] = email
-            
+
+            # Store verification in session
+            request.session["otp_verified"] = True
+            request.session["otp_email"] = email
+
             print(f"✅ OTP verified for {email}")
-            return JsonResponse({'success': True, 'message': 'OTP verified successfully'})
-            
+            return JsonResponse(
+                {"success": True, "message": "OTP verified successfully"}
+            )
+
         except OTP.DoesNotExist:
             print(f"❌ Invalid OTP for {email}")
-            return JsonResponse({'success': False, 'error': 'Invalid OTP code'})
-    
-    return JsonResponse({'success': False, 'error': 'Invalid request'})
+            return JsonResponse(
+                {"success": False, "error": "Invalid OTP code"}
+            )
+
+    return JsonResponse({"success": False, "error": "Invalid request"})
