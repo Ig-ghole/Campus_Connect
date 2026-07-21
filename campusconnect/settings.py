@@ -137,6 +137,6 @@ LOGOUT_REDIRECT_URL = 'login'
 #EMAIL_TIMEOUT = 30
 
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
-DEFAULT_FROM_EMAIL = 'Campus Connect <campusconnect2006@gmail.com>'
+DEFAULT_FROM_EMAIL = 'otp@campusconnect.site'
 #print(f"📧 Email configured with Brevo: {EMAIL_HOST_USER}")
 #print(f"SMTP Password set: {'Yes' if EMAIL_HOST_PASSWORD else 'No'}")
