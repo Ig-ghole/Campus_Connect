@@ -784,6 +784,8 @@ def generate_otp():
 
 logger = logging.getLogger(__name__)
 
+
+
 @csrf_exempt
 def send_otp(request):
     if request.method == 'POST':
@@ -791,23 +793,22 @@ def send_otp(request):
         
         print(f"📧 Sending OTP to: {email}")
         
-        # Check if email ends with @nec.edu.np
         if not email.endswith('@nec.edu.np'):
-            return JsonResponse({'success': False, 'error': 'Only @nec.edu.np emails are allowed'})
+            return JsonResponse({
+                'success': False, 
+                'error': 'Only @nec.edu.np emails are allowed'
+            })
         
-        # Check if email already registered
         if User.objects.filter(email=email).exists():
-            return JsonResponse({'success': False, 'error': 'Email already registered'})
+            return JsonResponse({
+                'success': False, 
+                'error': 'Email already registered'
+            })
         
-        # Delete old OTPs
-        OTP.objects.filter(email=email).delete()
-        
-        # Generate new OTP
-        otp_code = generate_otp()
+        otp_code = str(random.randint(100000, 999999))
         OTP.objects.create(email=email, otp_code=otp_code)
         
         try:
-            # Send email
             send_mail(
                 subject='🔐 Campus Connect - OTP Verification',
                 message=f'''
@@ -819,21 +820,15 @@ Your One-Time Password (OTP) for Campus Connect registration is:
 
 This OTP is valid for 10 minutes.
 
-If you did not request this, please ignore this email.
-
 Best regards,
 Campus Connect Team
-Nepal Engineering College
 ''',
-                from_email=settings.DEFAULT_FROM_EMAIL,
+                from_email=settings.DEFAULT_FROM_EMAIL,  # onboarding@resend.dev
                 recipient_list=[email],
-                fail_silently=False,  # This will raise exception if fails
+                fail_silently=False,
             )
             
-            print(f"\n{'='*50}")
-            print(f"✅ OTP EMAIL SENT TO: {email}")
-            print(f"🔐 OTP CODE: {otp_code}")
-            print(f"{'='*50}\n")
+            print(f"✅ OTP sent to {email}")
             
             return JsonResponse({
                 'success': True,
@@ -841,16 +836,14 @@ Nepal Engineering College
             })
             
         except Exception as e:
-            print(f"❌ Error sending email: {e}")
-            logger.error(f"Email sending failed: {e}")
-            
-            # For debugging - show error details
+            print(f"❌ Error: {e}")
             return JsonResponse({
                 'success': False,
                 'error': f'Failed to send email: {str(e)}'
             })
     
     return JsonResponse({'success': False, 'error': 'Invalid request'})
+
 
 
 @csrf_exempt
