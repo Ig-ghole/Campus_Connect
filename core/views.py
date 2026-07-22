@@ -12,7 +12,15 @@ import random
 from django.core.mail import send_mail
 from django.utils import timezone
 from .models import OTP
+import json
+import os
+import urllib.request
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.core.mail import send_mail
+import logging
 
+logging.basicConfig(level=logging.INFO)
 # ==================== AUTHENTICATION VIEWS ====================
 
 def signup(request):
@@ -767,21 +775,14 @@ def get_user_posts(request):
 
 
 # ==================== OTP VIEWS ====================
-import json
-import os
-import random
-import urllib.request
-from django.conf import settings
-from django.contrib.auth.models import User
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 
-from .models import OTP  # Ensure your OTP model is imported
 
 
 def generate_otp():
     return str(random.randint(100000, 999999))
 
+
+logger = logging.getLogger(__name__)
 
 @csrf_exempt
 def send_otp(request):
@@ -805,8 +806,8 @@ def send_otp(request):
         otp_code = generate_otp()
         OTP.objects.create(email=email, otp_code=otp_code)
         
-        # ✅ Send professional email from @nec.edu.np
         try:
+            # Send email
             send_mail(
                 subject='🔐 Campus Connect - OTP Verification',
                 message=f'''
@@ -824,25 +825,30 @@ Best regards,
 Campus Connect Team
 Nepal Engineering College
 ''',
-                from_email=settings.DEFAULT_FROM_EMAIL,  # noreply@nec.edu.np
+                from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email],
-                fail_silently=False,
+                fail_silently=False,  # This will raise exception if fails
             )
             
-            # ✅ Print to terminal (for debugging)
             print(f"\n{'='*50}")
-            print(f"🔐 OTP FOR {email}: {otp_code}")
+            print(f"✅ OTP EMAIL SENT TO: {email}")
+            print(f"🔐 OTP CODE: {otp_code}")
             print(f"{'='*50}\n")
-    
-            print(f"✅ OTP email sent to {email}")
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'OTP sent to your email'
+            })
+            
         except Exception as e:
             print(f"❌ Error sending email: {e}")
-            return JsonResponse({'success': False, 'error': 'Failed to send OTP email. Please try again.'})
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'OTP sent to your email'
-        })
+            logger.error(f"Email sending failed: {e}")
+            
+            # For debugging - show error details
+            return JsonResponse({
+                'success': False,
+                'error': f'Failed to send email: {str(e)}'
+            })
     
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 

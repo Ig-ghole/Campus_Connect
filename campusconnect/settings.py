@@ -121,33 +121,32 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
 
-# ==================== EMAIL CONFIGURATION ====================
-# ✅ Use console backend for Render (OTP appears in logs)
-#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+
 
 # ==================== EMAIL CONFIGURATION ====================
 
-# ✅ Brevo SMTP (Free forever, 300 emails/day)
-#EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-#EMAIL_HOST = 'smtp-relay.brevo.com'
-#EMAIL_PORT = 465
-#EMAIL_USE_SSL = True
-#EMAIL_USE_TLS = False
-#EMAIL_HOST_USER = 'b2a581001@smtp-brevo.com'  # ✅ Your Brevo login
-#EMAIL_HOST_PASSWORD ='bsk2vSQxvOM17ZO'     # ✅ Your SMTP key (click "Show" to see it)
-#DEFAULT_FROM_EMAIL = 'noreply@nec.edu.np'
-#EMAIL_TIMEOUT = 30
+# Check if running on Render
+IS_RENDER = os.environ.get('RENDER', False)
 
-#resend.api_key = os.environ.get('RESEND_API_KEY')
-#DEFAULT_FROM_EMAIL = 'Campus Connect <otp@campusconnect.site>'
-#print(f"📧 Email configured with Brevo: {EMAIL_HOST_USER}")
-#print(f"SMTP Password set: {'Yes' if EMAIL_HOST_PASSWORD else 'No'}")
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-
-EMAIL_HOST_USER = 'campusconnect2006@gmail.com'
-EMAIL_HOST_PASSWORD = 'zkknbelsptzourdu'
-
-DEFAULT_FROM_EMAIL = 'Campus Connect <campusconnect2006@gmail.com>'
+if IS_RENDER:
+    # Production - Use Gmail SMTP
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.gmail.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    
+    # From environment variables
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'campusconnect2006@gmail.com')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@nec.edu.np')
+    
+    if not EMAIL_HOST_PASSWORD:
+        print("⚠️ EMAIL_HOST_PASSWORD not set in environment!")
+else:
+    # Local development - console
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    EMAIL_HOST_USER = 'campusconnect2006@gmail.com'
+    EMAIL_HOST_PASSWORD = 'zkkn bels ptzo urdu'
+    DEFAULT_FROM_EMAIL = 'noreply@nec.edu.np'
+    print("📧 Using console backend for development")
