@@ -24,6 +24,26 @@ ALLOWED_HOSTS = [
     '.onrender.com',
 ]
 
+# ==================== CSRF & SESSION FIX FOR RENDER ====================
+# Trust Render's domains for CSRF
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.onrender.com',
+    'https://campus-connect-4-eboy.onrender.com',
+    'https://campus-connect-3-xc23.onrender.com',
+    'http://localhost',
+    'http://127.0.0.1',
+]
+
+# CSRF settings for HTTPS
+CSRF_COOKIE_SECURE = True  # ✅ Required for HTTPS
+CSRF_COOKIE_HTTPONLY = False  # ✅ Allow JavaScript to read CSRF token
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_USE_SESSIONS = False
+
+# Session settings for HTTPS
+SESSION_COOKIE_SECURE = True  # ✅ Required for HTTPS
+SESSION_COOKIE_SAMESITE = 'Lax'
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -120,8 +140,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
-
-
 
 # ==================== RESEND (NO DOMAIN NEEDED!) ====================
 
