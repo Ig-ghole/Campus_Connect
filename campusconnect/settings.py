@@ -9,38 +9,28 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
-
 import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-s%_k_*m-jit&suj$-mf!8lb^y(p5sp+89&j0!y&1mus%tj9&=c'
+# ==================== SECURITY ====================
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-s%_k_*m-jit&suj$-mf!8lb^y(p5sp+89&j0!y&1mus%tj9&=c')
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
-
-# ==================== ALLOWED HOSTS - PYTHONANYWHERE ====================
-ALLOWED_HOSTS = [
+# ==================== ALLOWED HOSTS ====================
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else [
     '127.0.0.1',
     'localhost',
-    #'.pythonanywhere.com',  # ✅ All PythonAnywhere domains
-    #'yourusername.pythonanywhere.com',  # ⚠️ REPLACE with your actual username
     '.onrender.com',
-    'campus-connect-3-xc23.onrender.com',  # ✅ YOUR URL
-    'campus-connect-4-eboy.onrender.com',
+    'campus-connect-3-xc23.onrender.com',
 ]
 
-# ==================== CSRF & SESSION ====================
-CSRF_TRUSTED_ORIGINS = [
-    #'https://*.pythonanywhere.com',
-    #'https://yourusername.pythonanywhere.com',  # ⚠️ REPLACE with your username
+# ==================== CSRF ====================
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if os.environ.get('CSRF_TRUSTED_ORIGINS') else [
     'https://*.onrender.com',
-    'https://campus-connect-3-xc23.onrender.com',  # ✅ YOUR URL
-    'https://campus-connect-4-eboy.onrender.com',
+    'https://campus-connect-3-xc23.onrender.com',
     'http://localhost',
     'http://127.0.0.1',
 ]
@@ -94,7 +84,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'campusconnect.wsgi.application'
 
-# ==================== DATABASE - SQLITE ====================
+# ==================== DATABASE ====================
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -126,7 +116,7 @@ USE_TZ = True
 
 # ==================== STATIC FILES ====================
 STATIC_URL = '/static/'
-STATIC_ROOT = '/home/yourusername/campus-connect/static'  # ⚠️ REPLACE username
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # ✅ FIXED
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
@@ -142,13 +132,9 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
 
-# ==================== EMAIL - GMAIL SMTP (WORKS ON PYTHONANYWHERE!) ====================
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'campusconnect2006@gmail.com'
-EMAIL_HOST_PASSWORD = 'zkkn bels ptzo urdu'  # Your Gmail App Password
-DEFAULT_FROM_EMAIL = 'campusconnect2006@gmail.com'
+# ==================== EMAIL - CONSOLE (WORKS ON RENDER) ====================
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'campusconnect@nec.edu.np'
 
-print("📧 Using Gmail SMTP - Email will work on PythonAnywhere!")
+print(f"📧 EMAIL_BACKEND: {EMAIL_BACKEND}")
+print(f"📧 STATIC_ROOT: {STATIC_ROOT}")
