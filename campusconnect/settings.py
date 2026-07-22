@@ -123,30 +123,19 @@ LOGOUT_REDIRECT_URL = 'login'
 
 
 
+# ==================== RESEND (NO DOMAIN NEEDED!) ====================
 
-# ==================== EMAIL CONFIGURATION ====================
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.resend.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'resend'  # ⚠️ MUST be "resend" - not your email!
+EMAIL_HOST_PASSWORD = os.environ.get('RESEND_API_KEY')
+DEFAULT_FROM_EMAIL = 'onboarding@resend.dev'  # ✅ Resend's default domain
 
-# Check if running on Render
-IS_RENDER = os.environ.get('RENDER', False)
-
-if IS_RENDER:
-    # Production - Use Gmail SMTP
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = 'smtp.gmail.com'
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    
-    # From environment variables
-    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'campusconnect2006@gmail.com')
-    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
-    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@nec.edu.np')
-    
-    if not EMAIL_HOST_PASSWORD:
-        print("⚠️ EMAIL_HOST_PASSWORD not set in environment!")
-else:
-    # Local development - console
+# Fallback for local testing
+if not EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-    EMAIL_HOST_USER = 'campusconnect2006@gmail.com'
-    EMAIL_HOST_PASSWORD = 'zkkn bels ptzo urdu'
-    DEFAULT_FROM_EMAIL = 'noreply@nec.edu.np'
-    print("📧 Using console backend for development")
+    print("⚠️ Using console backend")
+
+print(f"📧 Sending emails from: {DEFAULT_FROM_EMAIL}")
