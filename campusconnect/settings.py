@@ -5,8 +5,6 @@ Django settings for campusconnect project.
 import os
 from pathlib import Path
 
-import resend
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -16,32 +14,28 @@ SECRET_KEY = 'django-insecure-s%_k_*m-jit&suj$-mf!8lb^y(p5sp+89&j0!y&1mus%tj9&=c
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
+# ==================== ALLOWED HOSTS - PYTHONANYWHERE ====================
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
-    'campus-connect-4-eboy.onrender.com',
-    'campus-connect-3-xc23.onrender.com',
-    '.onrender.com',
+    '.pythonanywhere.com',  # ✅ All PythonAnywhere domains
+    'yourusername.pythonanywhere.com',  # ⚠️ REPLACE with your actual username
 ]
 
-# ==================== CSRF & SESSION FIX FOR RENDER ====================
-# Trust Render's domains for CSRF
+# ==================== CSRF & SESSION ====================
 CSRF_TRUSTED_ORIGINS = [
-    'https://*.onrender.com',
-    'https://campus-connect-4-eboy.onrender.com',
-    'https://campus-connect-3-xc23.onrender.com',
+    'https://*.pythonanywhere.com',
+    'https://yourusername.pythonanywhere.com',  # ⚠️ REPLACE with your username
     'http://localhost',
     'http://127.0.0.1',
 ]
 
-# CSRF settings for HTTPS
-CSRF_COOKIE_SECURE = True  # ✅ Required for HTTPS
-CSRF_COOKIE_HTTPONLY = False  # ✅ Allow JavaScript to read CSRF token
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_USE_SESSIONS = False
 
-# Session settings for HTTPS
-SESSION_COOKIE_SECURE = True  # ✅ Required for HTTPS
+SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
 # Application definition
@@ -85,7 +79,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'campusconnect.wsgi.application'
 
-# Database
+# ==================== DATABASE - SQLITE ====================
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -117,19 +111,11 @@ USE_TZ = True
 
 # ==================== STATIC FILES ====================
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# ✅ This tells Django where to find your source static files
+STATIC_ROOT = '/home/yourusername/campus-connect/static'  # ⚠️ REPLACE username
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
-
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-# ✅ Debug prints AFTER STATIC_ROOT is defined
-print(f"BASE_DIR: {BASE_DIR}")
-print(f"STATIC_ROOT: {STATIC_ROOT}")
-print(f"STATICFILES_DIRS: {STATICFILES_DIRS}")
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -141,19 +127,13 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
 
-# ==================== RESEND (NO DOMAIN NEEDED!) ====================
-
+# ==================== EMAIL - GMAIL SMTP (WORKS ON PYTHONANYWHERE!) ====================
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.resend.com'
+EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'resend'  # ⚠️ MUST be "resend" - not your email!
-EMAIL_HOST_PASSWORD = os.environ.get('RESEND_API_KEY')
-DEFAULT_FROM_EMAIL = 'onboarding@resend.dev'  # ✅ Resend's default domain
+EMAIL_HOST_USER = 'campusconnect2006@gmail.com'
+EMAIL_HOST_PASSWORD = 'zkkn bels ptzo urdu'  # Your Gmail App Password
+DEFAULT_FROM_EMAIL = 'campusconnect2006@gmail.com'
 
-# Fallback for local testing
-if not EMAIL_HOST_PASSWORD:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-    print("⚠️ Using console backend")
-
-print(f"📧 Sending emails from: {DEFAULT_FROM_EMAIL}")
+print("📧 Using Gmail SMTP - Email will work on PythonAnywhere!")

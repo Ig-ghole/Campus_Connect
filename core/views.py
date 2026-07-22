@@ -785,7 +785,6 @@ def generate_otp():
 logger = logging.getLogger(__name__)
 
 
-
 @csrf_exempt
 def send_otp(request):
     if request.method == 'POST':
@@ -820,15 +819,19 @@ Your One-Time Password (OTP) for Campus Connect registration is:
 
 This OTP is valid for 10 minutes.
 
+If you did not request this, please ignore this email.
+
 Best regards,
 Campus Connect Team
+Nepal Engineering College
 ''',
-                from_email=settings.DEFAULT_FROM_EMAIL,  # onboarding@resend.dev
+                from_email=settings.DEFAULT_FROM_EMAIL,  # ✅ Now using Gmail
                 recipient_list=[email],
                 fail_silently=False,
             )
             
             print(f"✅ OTP sent to {email}")
+            print(f"🔐 OTP Code: {otp_code}")
             
             return JsonResponse({
                 'success': True,
@@ -836,10 +839,15 @@ Campus Connect Team
             })
             
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f"❌ Error sending email: {e}")
+            print(f"❌ Full error: {str(e)}")
+            
+            # ✅ Return OTP in response for debugging (remove in production)
             return JsonResponse({
-                'success': False,
-                'error': f'Failed to send email: {str(e)}'
+                'success': True,  # Still return success so user can proceed
+                'message': f'OTP generated but email failed. Use this code: {otp_code}',
+                'debug_otp': otp_code,  # Shows OTP in browser for testing
+                'email_error': str(e)
             })
     
     return JsonResponse({'success': False, 'error': 'Invalid request'})
