@@ -134,7 +134,13 @@ LOGOUT_REDIRECT_URL = 'login'
 
 # ==================== EMAIL - CONSOLE (WORKS ON RENDER) ====================
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'campusconnect@nec.edu.np'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'campusconnect2006@gmail.com'   # ✅ YOUR actual Gmail
+EMAIL_HOST_PASSWORD = 'zkkn bels ptzo urdu'          # ✅ YOUR actual App Password (no spaces)
+DEFAULT_FROM_EMAIL = 'noreply@nec.edu.np' 
 
 print(f"📧 EMAIL_BACKEND: {EMAIL_BACKEND}")
 print(f"📧 STATIC_ROOT: {STATIC_ROOT}")
